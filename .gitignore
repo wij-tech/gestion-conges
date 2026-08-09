@@ -1,0 +1,16 @@
+# Configuration locale
+.env
+
+# Logs
+*.log
+
+# Fichiers temporaires
+*.tmp
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Uploads utilisateurs
+uploads/*
+!uploads/.gitkeep
