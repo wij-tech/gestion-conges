@@ -29,58 +29,72 @@ $notifications = $stmt->fetchAll();
 
 <h1>Toutes les notifications</h1>
 
-<table>
+<div class="notification-panel">
+    <table class="notification-table">
 
-    <tr>
-        <th>Destinataire</th>
-        <th>Titre</th>
-        <th>Message</th>
-        <th>Type</th>
-        <th>Statut</th>
-        <th>Date</th>
-        <th>Action</th>
-    </tr>
+        <tr>
+            <th>Destinataire</th>
+            <th>Titre</th>
+            <th>Message</th>
+            <th>Type</th>
+            <th>Statut</th>
+            <th>Date</th>
+            <th>Action</th>
+        </tr>
 
-    <?php foreach ($notifications as $notification) { ?>
+        <?php foreach ($notifications as $notification) { ?>
 
         <tr>
 
             <td>
                 <?php
                 if (!empty($notification['nom'])) {
-                    echo $notification['nom'] . ' ' . $notification['prenom'];
+                    echo e($notification['nom']) . ' ' . e($notification['prenom']);
                 } else {
                     echo "Administrateur";
                 }
                 ?>
             </td>
 
-            <td><?= $notification['titre']; ?></td>
+            <td><?= e($notification['titre']); ?></td>
 
-            <td><?= $notification['message']; ?></td>
+            <td><?= e($notification['message']); ?></td>
 
-            <td><?= $notification['type_notification']; ?></td>
+            <td><?= e($notification['type_notification']); ?></td>
 
             <td>
-                <?= ($notification['lu'] == 1) ? "Lue" : "Non lue"; ?>
+                <?php if ($notification['lu'] == 1) { ?>
+
+                <span class="notification-status notification-read">
+                    <i class="fa-solid fa-check-circle"></i>
+                    Lue
+                </span>
+
+                <?php } else { ?>
+
+                <span class="notification-status notification-unread">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    Non lue
+                </span>
+
+                <?php } ?>
             </td>
 
-            <td><?= $notification['date_notification']; ?></td>
+            <td><?= e($notification['date_notification']); ?></td>
             <td class="actions">
 
-    <a class="btn-icon btn-supprimer"
-       href="supprimer_notification.php?id=<?= $notification['id']; ?>"
-       onclick="return confirm('Voulez-vous supprimer cette notification ?')"
-       title="Supprimer">
+                <a class="btn-icon btn-supprimer" href="supprimer_notification.php?id=<?= $notification['id']; ?>"
+                    onclick="return confirm('Voulez-vous supprimer cette notification ?')" title="Supprimer">
 
-        <i class="fa-solid fa-trash"></i>
+                    <i class="fa-solid fa-trash"></i>
 
-    </a>
+                </a>
 
-</td>
+            </td>
 
         </tr>
 
-    <?php } ?>
+        <?php } ?>
 
-</table>
+    </table>
+</div>

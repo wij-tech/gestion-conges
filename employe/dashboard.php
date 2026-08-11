@@ -3,6 +3,10 @@
 require_once "../config/auth.php";
 require_once "../config/database.php";
 
+if (!in_array($_SESSION['role'] ?? '', ['employe', 'chef_division'], true)) {
+    http_response_code(403);
+    exit('Accès refusé.');
+}
 
 // Récupérer l'employé connecté
 $sql = "SELECT *
@@ -13,6 +17,11 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute([$_SESSION['id']]);
 
 $employe = $stmt->fetch();
+
+if (!$employe) {
+    http_response_code(403);
+    exit('Profil employé introuvable.');
+}
 
 
 // Congés validés
@@ -218,7 +227,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
 
         ?>
 
-            <h1>Bienvenue <?= $employe['prenom']; ?> !</h1>
+            <h1>Bienvenue <?= e($employe['prenom']); ?> !</h1>
 
 <div class="cards">
 
@@ -262,9 +271,20 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
 
     </div>
 
+    </div>
+
     <?php if($_SESSION['role']=="chef_division"){ ?>
 
-<div class="cards">
+<section class="division-dashboard">
+<div class="division-heading">
+    <div>
+        <p class="eyebrow">Vue de la division</p>
+        <h2>Suivi de mon équipe</h2>
+    </div>
+    <i class="fa-solid fa-people-group"></i>
+</div>
+
+<div class="cards division-cards">
 
     <div class="card">
 
@@ -307,7 +327,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
     </div>
 
 </div>
-<?php if($_SESSION['role'] == "chef_division"){ ?>
 
 <div class="table-container">
 
@@ -333,15 +352,15 @@ Employés de ma division
 
 <tr>
 
-    <td><?= $e['matricule']; ?></td>
+    <td><?= e($e['matricule']); ?></td>
 
-    <td><?= $e['nom']; ?></td>
+    <td><?= e($e['nom']); ?></td>
 
-    <td><?= $e['prenom']; ?></td>
+    <td><?= e($e['prenom']); ?></td>
 
-    <td><?= $e['email']; ?></td>
+    <td><?= e($e['email']); ?></td>
 
-    <td><?= $e['telephone']; ?></td>
+    <td><?= e($e['telephone']); ?></td>
 
     <td><?= $e['solde_total']; ?> jours</td>
 
@@ -352,12 +371,9 @@ Employés de ma division
 </table>
 
 </div>
+</section>
 
 <?php } ?>
-
-<?php } ?>
-
-</div>
 
         <?php
 

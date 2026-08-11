@@ -12,6 +12,8 @@ $stmt->execute([$_SESSION['id']]);
 
 $employe = $stmt->fetch();
 
+$messageSucces = '';
+
 
 // Traitement du formulaire
 if (isset($_POST['envoyer'])) {
@@ -75,15 +77,20 @@ if (isset($_POST['envoyer'])) {
     ]);
 
 
-    echo "<script>
-            alert('Votre demande de congé a été envoyée avec succès !');
-          </script>";
+    $messageSucces = 'Votre demande de congé a été envoyée avec succès.';
 }
 
 ?>
 <div class="form-container">
 
 <h1>Demande de congé</h1>
+
+<?php if ($messageSucces !== '') { ?>
+    <div class="flash-message flash-success" role="status">
+        <i class="fa-solid fa-circle-check"></i>
+        <span><?= e($messageSucces); ?></span>
+    </div>
+<?php } ?>
 
 <p>
     Votre solde actuel :

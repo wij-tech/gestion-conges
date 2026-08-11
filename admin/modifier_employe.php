@@ -1,7 +1,18 @@
 <?php
 
+require_once "../config/auth.php";
+require_once "../config/database.php";
 
-$id = $_GET['id'];
+if (($_SESSION['role'] ?? '') !== 'admin') {
+    http_response_code(403);
+    exit('Accès refusé.');
+}
+
+$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+if (!$id) {
+    http_response_code(400);
+    exit('Employé invalide.');
+}
 
 
 /* Employé */
@@ -11,6 +22,10 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute([$id]);
 
 $employe = $stmt->fetch();
+if (!$employe) {
+    http_response_code(404);
+    exit('Employé introuvable.');
+}
 
 
 /* Divisions */
@@ -21,12 +36,25 @@ $divisions = $stmtDivision->fetchAll();
 if(isset($_POST['modifier']))
 {
 
-    $nom = $_POST['nom'];
-    $prenom = $_POST['prenom'];
-    $email = $_POST['email'];
-    $telephone = $_POST['telephone'];
-    $date_embauche = $_POST['date_embauche'];
-    $division_id = $_POST['division_id'];
+    if (!csrf_is_valid($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        exit('Session du formulaire expirée.');
+    }
+
+
+    $nom = trim($_POST['nom'] ?? '');
+    $prenom = trim($_POST['prenom'] ?? '');
+    $cin = strtoupper(trim($_POST['cin'] ?? ''));
+    $email = trim($_POST['email'] ?? '');
+    $telephone = trim($_POST['telephone'] ?? '');
+    $date_embauche = $_POST['date_embauche'] ?? '';
+    $division_id = filter_input(INPUT_POST, 'division_id', FILTER_VALIDATE_INT);
+
+    if ($nom === '' || $prenom === '' || !preg_match('/^[A-Z0-9-]{4,20}$/', $cin) || !filter_var($email, FILTER_VALIDATE_EMAIL)
+        || !$division_id || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_embauche)) {
+        http_response_code(422);
+        exit('Les données du formulaire sont invalides.');
+    }
 
 
     $sql = "UPDATE employes
@@ -35,6 +63,7 @@ if(isset($_POST['modifier']))
 
             nom = ?,
             prenom = ?,
+            cin = ?,
             email = ?,
             telephone = ?,
             date_embauche = ?,
@@ -49,6 +78,7 @@ if(isset($_POST['modifier']))
 
         $nom,
         $prenom,
+        $cin,
         $email,
         $telephone,
         $date_embauche,
@@ -76,13 +106,15 @@ if(isset($_POST['modifier']))
 
 <form method="POST">
 
+<input type="hidden" name="csrf_token" value="<?= e(csrf_token()); ?>">
+
 
 Nom :
 <br>
 
 <input type="text"
 name="nom"
-value="<?= $employe['nom']; ?>">
+value="<?= e($employe['nom']); ?>">
 
 <br><br>
 
@@ -92,7 +124,19 @@ Prénom :
 
 <input type="text"
 name="prenom"
-value="<?= $employe['prenom']; ?>">
+value="<?= e($employe['prenom']); ?>">
+
+<br><br>
+
+Numéro CIN :
+<br>
+
+<input type="text"
+name="cin"
+maxlength="20"
+pattern="[A-Za-z0-9-]{4,20}"
+value="<?= e($employe['cin']); ?>"
+required>
 
 <br><br>
 
@@ -102,7 +146,7 @@ Email :
 
 <input type="email"
 name="email"
-value="<?= $employe['email']; ?>">
+value="<?= e($employe['email']); ?>">
 
 <br><br>
 
@@ -112,7 +156,7 @@ Téléphone :
 
 <input type="text"
 name="telephone"
-value="<?= $employe['telephone']; ?>">
+value="<?= e($employe['telephone']); ?>">
 
 <br><br>
 
@@ -122,7 +166,7 @@ Date embauche :
 
 <input type="date"
 name="date_embauche"
-value="<?= $employe['date_embauche']; ?>">
+value="<?= e($employe['date_embauche']); ?>">
 
 <br><br>
 
@@ -141,7 +185,7 @@ value="<?= $division['id']; ?>"
 
 >
 
-<?= $division['nom_division']; ?>
+<?= e($division['nom_division']); ?>
 
 </option>
 

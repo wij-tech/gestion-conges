@@ -78,6 +78,7 @@ CREATE TABLE `employes` (
   `matricule` varchar(50) NOT NULL,
   `nom` varchar(50) NOT NULL,
   `prenom` varchar(50) NOT NULL,
+  `cin` varchar(20) DEFAULT NULL,
   `email` varchar(100) NOT NULL,
   `telephone` varchar(20) DEFAULT NULL,
   `date_embauche` date NOT NULL,
@@ -93,11 +94,11 @@ CREATE TABLE `employes` (
 -- Déchargement des données de la table `employes`
 --
 
-INSERT INTO `employes` (`id`, `matricule`, `nom`, `prenom`, `email`, `telephone`, `date_embauche`, `division_id`, `utilisateur_id`, `solde_annuel`, `reste_annee_precedente`, `solde_total`, `derniere_maj_solde`) VALUES
-(3, 'EMP001', 'himi', 'manal', 'manal@gmail.com', '0655874589', '2026-07-15', 1, 4, 22, 81, 103, NULL),
-(4, 'EMP002', 'zerhouni', 'samira', 'zerhounisamira16@gmail.com', '0585421589', '2023-02-02', 1, 5, 22, 110, 127, NULL),
-(5, 'EMP003', 'fellahi', 'ilyas', 'ilyas.fellahi.fi@gmail.com', '0666872686', '2024-02-02', 1, 6, 22, 22, 44, NULL),
-(7, 'EMP004', 'bennani', 'wijdane', 'wijdane@gmail.com', '0521875124', '2026-07-02', 1, 8, 22, 22, 44, NULL);
+INSERT INTO `employes` (`id`, `matricule`, `nom`, `prenom`, `cin`, `email`, `telephone`, `date_embauche`, `division_id`, `utilisateur_id`, `solde_annuel`, `reste_annee_precedente`, `solde_total`, `derniere_maj_solde`) VALUES
+(3, 'EMP001', 'himi', 'manal', NULL, 'manal@gmail.com', '0655874589', '2026-07-15', 1, 4, 22, 81, 103, NULL),
+(4, 'EMP002', 'zerhouni', 'samira', NULL, 'zerhounisamira16@gmail.com', '0585421589', '2023-02-02', 1, 5, 22, 110, 127, NULL),
+(5, 'EMP003', 'fellahi', 'ilyas', NULL, 'ilyas.fellahi.fi@gmail.com', '0666872686', '2024-02-02', 1, 6, 22, 22, 44, NULL),
+(7, 'EMP004', 'bennani', 'wijdane', NULL, 'wijdane@gmail.com', '0521875124', '2026-07-02', 1, 8, 22, 22, 44, NULL);
 
 -- --------------------------------------------------------
 
@@ -207,6 +208,7 @@ ALTER TABLE `divisions`
 ALTER TABLE `employes`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `matricule` (`matricule`),
+  ADD UNIQUE KEY `cin` (`cin`),
   ADD KEY `division_id` (`division_id`),
   ADD KEY `utilisateur_id` (`utilisateur_id`);
 

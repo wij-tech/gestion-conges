@@ -44,7 +44,7 @@ if(isset($_GET['error']) && $_GET['error']=="employes")
 
             <td><?= $division['id']; ?></td>
 
-            <td><?= $division['nom_division']; ?></td>
+            <td><?= e($division['nom_division']); ?></td>
 
             <td class="actions">
 
