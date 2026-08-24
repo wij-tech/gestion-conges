@@ -156,7 +156,8 @@ $conges = $stmt->fetchAll();
 
 </form>
 
-<br>
+<div class="table-container leave-table-container">
+    <h2><i class="fa-solid fa-calendar-days"></i> Liste des demandes de congé</h2>
 
 <table>
 
@@ -230,3 +231,4 @@ else
     <?php } ?>
 
 </table>
+</div>

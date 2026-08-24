@@ -35,6 +35,7 @@ CREATE TABLE `conges` (
   `date_fin` date NOT NULL,
   `nombre_jours` int(11) NOT NULL,
   `motif` text NOT NULL,
+  `certificat_medical` varchar(255) DEFAULT NULL,
   `statut` enum('En attente','Valide','Refuse','Annule') DEFAULT 'En attente',
   `date_demande` datetime DEFAULT current_timestamp(),
   `date_traitement` datetime DEFAULT NULL,
@@ -45,9 +46,9 @@ CREATE TABLE `conges` (
 -- Déchargement des données de la table `conges`
 --
 
-INSERT INTO `conges` (`id`, `employe_id`, `type_conge`, `date_debut`, `date_fin`, `nombre_jours`, `motif`, `statut`, `date_demande`, `date_traitement`, `chef_division_id`) VALUES
-(1, 3, 'Congé annuel', '2026-07-02', '2026-07-30', 29, 'all', 'Valide', '2026-07-19 12:49:07', '2026-07-19 13:10:44', 5),
-(2, 4, 'Congé annuel', '2026-07-21', '2026-07-25', 5, 'aze', 'Valide', '2026-07-21 14:21:02', '2026-07-21 14:21:38', 5);
+INSERT INTO `conges` (`id`, `employe_id`, `type_conge`, `date_debut`, `date_fin`, `nombre_jours`, `motif`, `certificat_medical`, `statut`, `date_demande`, `date_traitement`, `chef_division_id`) VALUES
+(1, 3, 'Congé annuel', '2026-07-02', '2026-07-30', 29, 'all', NULL, 'Valide', '2026-07-19 12:49:07', '2026-07-19 13:10:44', 5),
+(2, 4, 'Congé annuel', '2026-07-21', '2026-07-25', 5, 'aze', NULL, 'Valide', '2026-07-21 14:21:02', '2026-07-21 14:21:38', 5);
 
 -- --------------------------------------------------------
 
