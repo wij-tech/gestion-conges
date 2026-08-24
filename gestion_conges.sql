@@ -35,6 +35,7 @@ CREATE TABLE `conges` (
   `date_fin` date NOT NULL,
   `nombre_jours` int(11) NOT NULL,
   `motif` text NOT NULL,
+  `certificat_medical` varchar(255) DEFAULT NULL,
   `statut` enum('En attente','Valide','Refuse','Annule') DEFAULT 'En attente',
   `date_demande` datetime DEFAULT current_timestamp(),
   `date_traitement` datetime DEFAULT NULL,
@@ -45,9 +46,9 @@ CREATE TABLE `conges` (
 -- Déchargement des données de la table `conges`
 --
 
-INSERT INTO `conges` (`id`, `employe_id`, `type_conge`, `date_debut`, `date_fin`, `nombre_jours`, `motif`, `statut`, `date_demande`, `date_traitement`, `chef_division_id`) VALUES
-(1, 3, 'Congé annuel', '2026-07-02', '2026-07-30', 29, 'all', 'Valide', '2026-07-19 12:49:07', '2026-07-19 13:10:44', 5),
-(2, 4, 'Congé annuel', '2026-07-21', '2026-07-25', 5, 'aze', 'Valide', '2026-07-21 14:21:02', '2026-07-21 14:21:38', 5);
+INSERT INTO `conges` (`id`, `employe_id`, `type_conge`, `date_debut`, `date_fin`, `nombre_jours`, `motif`, `certificat_medical`, `statut`, `date_demande`, `date_traitement`, `chef_division_id`) VALUES
+(1, 3, 'Congé annuel', '2026-07-02', '2026-07-30', 29, 'all', NULL, 'Valide', '2026-07-19 12:49:07', '2026-07-19 13:10:44', 5),
+(2, 4, 'Congé annuel', '2026-07-21', '2026-07-25', 5, 'aze', NULL, 'Valide', '2026-07-21 14:21:02', '2026-07-21 14:21:38', 5);
 
 -- --------------------------------------------------------
 
@@ -78,6 +79,7 @@ CREATE TABLE `employes` (
   `matricule` varchar(50) NOT NULL,
   `nom` varchar(50) NOT NULL,
   `prenom` varchar(50) NOT NULL,
+  `cin` varchar(20) DEFAULT NULL,
   `email` varchar(100) NOT NULL,
   `telephone` varchar(20) DEFAULT NULL,
   `date_embauche` date NOT NULL,
@@ -93,11 +95,11 @@ CREATE TABLE `employes` (
 -- Déchargement des données de la table `employes`
 --
 
-INSERT INTO `employes` (`id`, `matricule`, `nom`, `prenom`, `email`, `telephone`, `date_embauche`, `division_id`, `utilisateur_id`, `solde_annuel`, `reste_annee_precedente`, `solde_total`, `derniere_maj_solde`) VALUES
-(3, 'EMP001', 'himi', 'manal', 'manal@gmail.com', '0655874589', '2026-07-15', 1, 4, 22, 81, 103, NULL),
-(4, 'EMP002', 'zerhouni', 'samira', 'zerhounisamira16@gmail.com', '0585421589', '2023-02-02', 1, 5, 22, 110, 127, NULL),
-(5, 'EMP003', 'fellahi', 'ilyas', 'ilyas.fellahi.fi@gmail.com', '0666872686', '2024-02-02', 1, 6, 22, 22, 44, NULL),
-(7, 'EMP004', 'bennani', 'wijdane', 'wijdane@gmail.com', '0521875124', '2026-07-02', 1, 8, 22, 22, 44, NULL);
+INSERT INTO `employes` (`id`, `matricule`, `nom`, `prenom`, `cin`, `email`, `telephone`, `date_embauche`, `division_id`, `utilisateur_id`, `solde_annuel`, `reste_annee_precedente`, `solde_total`, `derniere_maj_solde`) VALUES
+(3, 'EMP001', 'himi', 'manal', NULL, 'manal@gmail.com', '0655874589', '2026-07-15', 1, 4, 22, 81, 103, NULL),
+(4, 'EMP002', 'zerhouni', 'samira', NULL, 'zerhounisamira16@gmail.com', '0585421589', '2023-02-02', 1, 5, 22, 110, 127, NULL),
+(5, 'EMP003', 'fellahi', 'ilyas', NULL, 'ilyas.fellahi.fi@gmail.com', '0666872686', '2024-02-02', 1, 6, 22, 22, 44, NULL),
+(7, 'EMP004', 'bennani', 'wijdane', NULL, 'wijdane@gmail.com', '0521875124', '2026-07-02', 1, 8, 22, 22, 44, NULL);
 
 -- --------------------------------------------------------
 
@@ -207,6 +209,7 @@ ALTER TABLE `divisions`
 ALTER TABLE `employes`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `matricule` (`matricule`),
+  ADD UNIQUE KEY `cin` (`cin`),
   ADD KEY `division_id` (`division_id`),
   ADD KEY `utilisateur_id` (`utilisateur_id`);
 

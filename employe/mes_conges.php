@@ -60,15 +60,15 @@ $conges = $stmt->fetchAll();
 
         <tr>
 
-            <td><?= $conge['type_conge']; ?></td>
+            <td><?= e($conge['type_conge']); ?></td>
 
-            <td><?= $conge['date_debut']; ?></td>
+            <td><?= e($conge['date_debut']); ?></td>
 
-            <td><?= $conge['date_fin']; ?></td>
+            <td><?= e($conge['date_fin']); ?></td>
 
             <td><?= $conge['nombre_jours']; ?></td>
 
-            <td><?= $conge['motif']; ?></td>
+            <td><?= e($conge['motif']); ?></td>
 
             <td>
 
@@ -100,7 +100,7 @@ else
 
 </td>
 
-            <td><?= $conge['date_demande']; ?></td>
+            <td><?= e($conge['date_demande']); ?></td>
 
         </tr>
 

@@ -72,11 +72,6 @@ $stmt->execute($params);
 
 $conges = $stmt->fetchAll();
 
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-
-$conges = $stmt->fetchAll();
-
 ?>
 
 <h1>Gestion des congés</h1>
@@ -93,7 +88,7 @@ $conges = $stmt->fetchAll();
             <option value="<?= $d['id']; ?>"
                 <?= ($division == $d['id']) ? "selected" : ""; ?>>
 
-                <?= $d['nom_division']; ?>
+                <?= e($d['nom_division']); ?>
 
             </option>
 
@@ -145,11 +140,11 @@ $conges = $stmt->fetchAll();
 
     <input type="date"
            name="date_debut"
-           value="<?= $date_debut; ?>">
+           value="<?= e($date_debut); ?>">
 
     <input type="date"
            name="date_fin"
-           value="<?= $date_fin; ?>">
+           value="<?= e($date_fin); ?>">
 
     <button class="btn-rechercher">
 
@@ -161,7 +156,8 @@ $conges = $stmt->fetchAll();
 
 </form>
 
-<br>
+<div class="table-container leave-table-container">
+    <h2><i class="fa-solid fa-calendar-days"></i> Liste des demandes de congé</h2>
 
 <table>
 
@@ -182,17 +178,17 @@ $conges = $stmt->fetchAll();
 
         <tr>
 
-            <td><?= $conge['nom']; ?></td>
+            <td><?= e($conge['nom']); ?></td>
 
-            <td><?= $conge['prenom']; ?></td>
+            <td><?= e($conge['prenom']); ?></td>
 
-            <td><?= $conge['nom_division']; ?></td>
+            <td><?= e($conge['nom_division']); ?></td>
 
-            <td><?= $conge['type_conge']; ?></td>
+            <td><?= e($conge['type_conge']); ?></td>
 
-            <td><?= $conge['date_debut']; ?></td>
+            <td><?= e($conge['date_debut']); ?></td>
 
-            <td><?= $conge['date_fin']; ?></td>
+            <td><?= e($conge['date_fin']); ?></td>
 
             <td><?= $conge['nombre_jours']; ?></td>
 
@@ -226,12 +222,13 @@ else
 
 </td>
 
-            <td><?= $conge['date_demande']; ?></td>
+            <td><?= e($conge['date_demande']); ?></td>
 
-            <td><?= $conge['date_traitement']; ?></td>
+            <td><?= e($conge['date_traitement']); ?></td>
 
         </tr>
 
     <?php } ?>
 
 </table>
+</div>

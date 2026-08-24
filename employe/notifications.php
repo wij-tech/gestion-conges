@@ -20,58 +20,62 @@ $notifications = $stmt->fetchAll();
 
 <?php if (count($notifications) == 0) { ?>
 
-    <p>Aucune notification.</p>
+<p>Aucune notification.</p>
 
 <?php } else { ?>
 
-<table>
-
-    <tr>
-        <th>Titre</th>
-        <th>Message</th>
-        <th>Type</th>
-        <th>Statut</th>
-        <th>Date</th>
-        <th>Action</th>
-    </tr>
-
-    <?php foreach ($notifications as $notification) { ?>
+<div class="notification-panel">
+    <table class="notification-table">
 
         <tr>
+            <th>Titre</th>
+            <th>Message</th>
+            <th>Type</th>
+            <th>Statut</th>
+            <th>Date</th>
+        </tr>
 
-            <td><?= $notification['titre']; ?></td>
+        <?php foreach ($notifications as $notification) { ?>
 
-            <td><?= $notification['message']; ?></td>
+        <tr class="<?= $notification['lu'] == 0 ? 'notification-unread' : ''; ?>">
 
-            <td><?= $notification['type_notification']; ?></td>
+            <td><?= e($notification['titre']); ?></td>
+
+            <td><?= e($notification['message']); ?></td>
+
+            <td><?= e($notification['type_notification']); ?></td>
 
             <td>
-                <?= ($notification['lu'] == 0) ? "Non lue" : "Lue"; ?>
-            </td>
-
-            <td><?= $notification['date_notification']; ?></td>
-
-            <td>
-
                 <?php if ($notification['lu'] == 0) { ?>
 
-                    <a class="btn-modifier"
-                       href="lire_notification.php?id=<?= $notification['id']; ?>">
-                        Marquer comme lue
-                    </a>
+                <a class="notification-status notification-unread"
+                    href="lire_notification.php?id=<?= $notification['id']; ?>" title="Cliquer pour marquer comme lue">
+
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    Non lue
+
+                </a>
 
                 <?php } else { ?>
 
-                    Déjà lue
+                <span class="notification-status notification-read">
+
+                    <i class="fa-solid fa-check-circle"></i>
+                    Lue
+
+                </span>
 
                 <?php } ?>
-
             </td>
+
+            <td><?= e($notification['date_notification']); ?></td>
+
 
         </tr>
 
-    <?php } ?>
+        <?php } ?>
 
-</table>
+    </table>
+</div>
 
 <?php } ?>

@@ -54,6 +54,7 @@ $conges = $stmt->fetchAll();
         <th>Date fin</th>
         <th>Nombre de jours</th>
         <th>Motif</th>
+        <th>Certificat médical</th>
         <th>Statut</th>
         <th>Actions</th>
 
@@ -63,11 +64,11 @@ $conges = $stmt->fetchAll();
 
         <tr>
 
-            <td><?= $conge['nom']; ?></td>
+            <td><?= e($conge['nom']); ?></td>
 
-            <td><?= $conge['prenom']; ?></td>
+            <td><?= e($conge['prenom']); ?></td>
 
-            <td><?= $conge['type_conge']; ?></td>
+            <td><?= e($conge['type_conge']); ?></td>
 
             <td><?= $conge['date_debut']; ?></td>
 
@@ -75,9 +76,20 @@ $conges = $stmt->fetchAll();
 
             <td><?= $conge['nombre_jours']; ?></td>
 
-            <td><?= $conge['motif']; ?></td>
+            <td><?= e($conge['motif']); ?></td>
 
-            <td><?= $conge['statut']; ?></td>
+            <td>
+                <?php if (!empty($conge['certificat_medical'])) { ?>
+                    <a class="btn-modifier btn-sm" target="_blank" rel="noopener"
+                       href="../uploads/certificats/<?= rawurlencode(basename($conge['certificat_medical'])); ?>">
+                        <i class="fa-solid fa-file-pdf"></i> Voir le PDF
+                    </a>
+                <?php } else { ?>
+                    —
+                <?php } ?>
+            </td>
+
+            <td><?= e($conge['statut']); ?></td>
 
             <td>
 
