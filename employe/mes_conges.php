@@ -42,6 +42,12 @@ $conges = $stmt->fetchAll();
 
 <br><br>
 
+<div class="table-container personal-leaves-table">
+<div class="table-heading">
+    <h2><i class="fa-solid fa-calendar-check"></i> Historique de mes demandes</h2>
+    <span class="result-count"><?= count($conges); ?> demande<?= count($conges) > 1 ? 's' : ''; ?></span>
+</div>
+
 <table>
 
     <tr>
@@ -51,6 +57,7 @@ $conges = $stmt->fetchAll();
         <th>Date fin</th>
         <th>Nombre de jours</th>
         <th>Motif</th>
+        <th>Certificat</th>
         <th>Statut</th>
         <th>Date de la demande</th>
 
@@ -69,6 +76,17 @@ $conges = $stmt->fetchAll();
             <td><?= $conge['nombre_jours']; ?></td>
 
             <td><?= e($conge['motif']); ?></td>
+
+            <td>
+                <?php if (!empty($conge['certificat_medical'])) { ?>
+                    <a class="document-link" target="_blank" rel="noopener"
+                       href="../uploads/certificats/<?= rawurlencode(basename($conge['certificat_medical'])); ?>">
+                        <i class="fa-solid fa-file-pdf"></i> PDF
+                    </a>
+                <?php } else { ?>
+                    <span class="document-empty">—</span>
+                <?php } ?>
+            </td>
 
             <td>
 
@@ -106,4 +124,11 @@ else
 
     <?php } ?>
 
+    <?php if (!$conges) { ?>
+        <tr class="empty-row">
+            <td colspan="8"><i class="fa-solid fa-calendar-xmark"></i> Vous n’avez encore aucune demande de congé.</td>
+        </tr>
+    <?php } ?>
+
 </table>
+</div>

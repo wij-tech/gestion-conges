@@ -3,6 +3,9 @@
 require_once "../config/auth.php";
 require_once "../config/database.php";
 
+$page = $_GET['page'] ?? 'home';
+$roleLabel = 'Administrateur';
+
 // =====================
 // Filtres
 // =====================
@@ -10,8 +13,6 @@ require_once "../config/database.php";
 $division = filter_input(INPUT_GET, 'division', FILTER_VALIDATE_INT) ?: '';
 $statut = $_GET['statut'] ?? '';
 $type = $_GET['type'] ?? '';
-$date_debut = $_GET['date_debut'] ?? '';
-$date_fin = $_GET['date_fin'] ?? '';
 
 $statutsAutorises = ['En attente', 'Valide', 'Refuse'];
 $typesAutorises = ['Congé annuel', 'Congé maladie', 'Congé exceptionnel', 'Congé sans solde'];
@@ -21,11 +22,6 @@ if (!in_array($statut, $statutsAutorises, true)) {
 }
 if (!in_array($type, $typesAutorises, true)) {
     $type = '';
-}
-foreach (['date_debut', 'date_fin'] as $champ) {
-    if ($$champ !== '' && !preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $$champ)) {
-        $$champ = '';
-    }
 }
 
 // Liste des divisions
@@ -65,14 +61,6 @@ if ($statut !== '') {
 if ($type !== '') {
     $conditionsConges[] = 'conges.type_conge = ?';
     $paramsConges[] = $type;
-}
-if ($date_debut !== '') {
-    $conditionsConges[] = 'conges.date_debut >= ?';
-    $paramsConges[] = $date_debut;
-}
-if ($date_fin !== '') {
-    $conditionsConges[] = 'conges.date_fin <= ?';
-    $paramsConges[] = $date_fin;
 }
 $whereConges = $conditionsConges ? ' WHERE ' . implode(' AND ', $conditionsConges) : '';
 
@@ -133,9 +121,9 @@ $derniersConges = $stmt->fetchAll();
 <html lang="fr">
 
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard Administrateur</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Administrateur</title>
 
     <link rel="stylesheet" href="../assets/css/dashboard.css?v=<?php echo time();?>">
 
@@ -156,55 +144,64 @@ $derniersConges = $stmt->fetchAll();
             <img src="../assets/images/logo.png" alt="Logo Province" class="sidebar-logo">
 
             <h2 class="sidebar-title">
-                Province d'Oujda
+                Wilaya d'Oujda
             </h2>
 
             <ul>
 
                 <li>
-                    <a href="dashboard.php?page=home">
+                    <a class="<?= $page === 'home' ? 'active' : ''; ?>" href="dashboard.php?page=home">
                         <i class="fa-solid fa-chart-line"></i>
                         Tableau de bord
                     </a>
                 </li>
 
                 <li>
-                    <a href="dashboard.php?page=employes">
+                    <a class="<?= $page === 'employes' ? 'active' : ''; ?>" href="dashboard.php?page=employes">
                         <i class="fa-solid fa-users"></i>
                         Gestion des employés
                     </a>
                 </li>
 
                 <li>
-                    <a href="dashboard.php?page=divisions">
+                    <a class="<?= $page === 'divisions' ? 'active' : ''; ?>" href="dashboard.php?page=divisions">
                         <i class="fa-solid fa-building"></i>
                         Gestion des divisions
                     </a>
                 </li>
 
                 <li>
-                    <a href="dashboard.php?page=conges">
+                    <a class="<?= $page === 'conges' ? 'active' : ''; ?>" href="dashboard.php?page=conges">
                         <i class="fa-solid fa-calendar-days"></i>
                         Gestion des congés
                     </a>
                 </li>
 
                 <li>
-                    <a href="dashboard.php?page=notifications">
+                    <a class="<?= $page === 'notifications' ? 'active' : ''; ?>"
+                        href="dashboard.php?page=notifications">
                         <i class="fa-solid fa-bell"></i>
                         Notifications
                     </a>
                 </li>
 
 
-                <li>
-                    <a href="../logout.php">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                        Déconnexion
-                    </a>
-                </li>
-
             </ul>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-profile">
+                    <div class="sidebar-avatar"><i class="fa-solid fa-user-shield"></i></div>
+                    <div>
+                        <strong><?= e($_SESSION['username'] ?? 'Administrateur'); ?></strong>
+                        <span><?= e($roleLabel); ?></span>
+                    </div>
+                </div>
+
+                <a class="sidebar-logout" href="../logout.php">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    Déconnexion
+                </a>
+            </div>
 
         </div>
 
@@ -212,8 +209,6 @@ $derniersConges = $stmt->fetchAll();
         <div class="main-content">
 
             <?php
-
-$page = $_GET['page'] ?? 'home';
 
 if ($page == 'home') {
 
@@ -226,25 +221,25 @@ if ($page == 'home') {
 
             <div class="cards">
 
-                <div class="card">
+                <div class="card card-primary">
                     <i class="fa-solid fa-users card-icon"></i>
                     <h3>Employés</h3>
                     <p><?= $totalEmployes ?></p>
                 </div>
 
-                <div class="card">
+                <div class="card card-violet">
                     <i class="fa-solid fa-building card-icon"></i>
                     <h3>Divisions</h3>
                     <p><?= $totalDivisions ?></p>
                 </div>
 
-                <div class="card">
+                <div class="card card-orange">
                     <i class="fa-solid fa-bell card-icon"></i>
                     <h3>Notifications</h3>
                     <p><?= $totalNotifications ?></p>
                 </div>
 
-                <div class="card">
+                <div class="card card-green">
                     <i class="fa-solid fa-user-tie card-icon"></i>
                     <h3>Chefs de division</h3>
                     <p><?= $totalChefs ?></p>
@@ -399,71 +394,76 @@ if ($page == 'home') {
                 });
                 </script>
 
-                <div class="dashboard-section">
+            </div>
 
-                    <form method="GET" class="search-form">
+            <div class="dashboard-section">
 
-                        <input type="hidden" name="page" value="home">
+                <form method="GET" class="search-form leave-filter">
 
-                        <select name="division">
-                            <option value="">Toutes les divisions</option>
-                            <?php foreach($divisions as $d){ ?>
-                            <option value="<?= $d['id']; ?>" <?= ($division == $d['id']) ? 'selected' : ''; ?>>
-                                <?= e($d['nom_division']); ?>
-                            </option>
-                            <?php } ?>
-                        </select>
+                    <input type="hidden" name="page" value="home">
 
-                        <select name="statut">
-                            <option value="">Tous les statuts</option>
-                            <option value="En attente" <?= ($statut=="En attente")?"selected":"";?>>En attente</option>
-                            <option value="Valide" <?= ($statut=="Valide")?"selected":"";?>>Validé</option>
-                            <option value="Refuse" <?= ($statut=="Refuse")?"selected":"";?>>Refusé</option>
-                        </select>
+                    <select name="division">
+                        <option value="">Toutes les divisions</option>
+                        <?php foreach($divisions as $d){ ?>
+                        <option value="<?= $d['id']; ?>" <?= ($division == $d['id']) ? 'selected' : ''; ?>>
+                            <?= e($d['nom_division']); ?>
+                        </option>
+                        <?php } ?>
+                    </select>
 
-                        <select name="type">
-                            <option value="">Tous les types</option>
-                            <option value="Congé annuel" <?= ($type=="Congé annuel")?"selected":"";?>>Congé annuel
-                            </option>
-                            <option value="Congé maladie" <?= ($type=="Congé maladie")?"selected":"";?>>Congé maladie
-                            </option>
-                            <option value="Congé exceptionnel" <?= ($type=="Congé exceptionnel")?"selected":"";?>>Congé
-                                exceptionnel</option>
-                            <option value="Congé sans solde" <?= ($type=="Congé sans solde")?"selected":"";?>>Congé sans
-                                solde</option>
-                        </select>
+                    <select name="statut">
+                        <option value="">Tous les statuts</option>
+                        <option value="En attente" <?= ($statut=="En attente")?"selected":"";?>>En attente</option>
+                        <option value="Valide" <?= ($statut=="Valide")?"selected":"";?>>Validé</option>
+                        <option value="Refuse" <?= ($statut=="Refuse")?"selected":"";?>>Refusé</option>
+                    </select>
 
-                        <input type="date" name="date_debut" value="<?= e($date_debut); ?>">
+                    <select name="type">
+                        <option value="">Tous les types</option>
+                        <option value="Congé annuel" <?= ($type=="Congé annuel")?"selected":"";?>>Congé annuel
+                        </option>
+                        <option value="Congé maladie" <?= ($type=="Congé maladie")?"selected":"";?>>Congé maladie
+                        </option>
+                        <option value="Congé exceptionnel" <?= ($type=="Congé exceptionnel")?"selected":"";?>>Congé
+                            exceptionnel</option>
+                        <option value="Congé sans solde" <?= ($type=="Congé sans solde")?"selected":"";?>>Congé sans
+                            solde</option>
+                    </select>
 
-                        <input type="date" name="date_fin" value="<?= e($date_fin); ?>">
+                    <button class="btn-rechercher">
+                        <i class="fa-solid fa-filter"></i> Filtrer
+                    </button>
 
-                        <button class="btn-rechercher">
-                            <i class="fa-solid fa-filter"></i> Filtrer
-                        </button>
+                </form>
 
-                    </form>
-
-                    <div class="table-container">
-                        <h2>Les 5 derniers congés demandés</h2>
-                        <table>
-                            <tr>
-                                <th>Employé</th>
-                                <th>Type de congé</th>
-                                <th>Statut</th>
-                            </tr>
-                            <?php foreach($derniersConges as $conge){ ?>
-                            <tr>
-                                <td><?= e($conge['nom']); ?> <?= e($conge['prenom']); ?></td>
-                                <td><?= e($conge['type_conge']); ?></td>
-                                <td><?= e($conge['statut']); ?></td>
-                            </tr>
-                            <?php } ?>
-                        </table>
-                    </div>
-
+                <div class="table-container">
+                    <h2>Les 5 derniers congés demandés</h2>
+                    <table>
+                        <tr>
+                            <th>Employé</th>
+                            <th>Type de congé</th>
+                            <th>Statut</th>
+                        </tr>
+                        <?php foreach($derniersConges as $conge){ ?>
+                        <tr>
+                            <td><?= e($conge['nom']); ?> <?= e($conge['prenom']); ?></td>
+                            <td><?= e($conge['type_conge']); ?></td>
+                            <td><?= e($conge['statut']); ?></td>
+                        </tr>
+                        <?php } ?>
+                        <?php if (!$derniersConges) { ?>
+                        <tr class="empty-row">
+                            <td colspan="3"><i class="fa-solid fa-inbox"></i> Aucune demande de congé à afficher.</td>
+                        </tr>
+                        <?php } ?>
+                    </table>
                 </div>
 
-                <?php
+            </div>
+
+        </div>
+
+        <?php
 
 }
 
@@ -515,9 +515,9 @@ elseif ($page == 'modifier_division') {
 
 ?>
 
-            </div>
+    </div>
 
-        </div>
+    </div>
 
 </body>
 

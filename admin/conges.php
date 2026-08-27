@@ -75,7 +75,7 @@ $conges = $stmt->fetchAll();
 ?>
 
 <h1>Gestion des congés</h1>
-<form method="GET" class="search-form">
+<form method="GET" class="search-form leave-filter">
 
     <input type="hidden" name="page" value="conges">
 
@@ -138,13 +138,19 @@ $conges = $stmt->fetchAll();
 
     </select>
 
-    <input type="date"
-           name="date_debut"
-           value="<?= e($date_debut); ?>">
+    <div class="filter-date <?= $date_debut !== '' ? 'has-value' : ''; ?>">
+        <i class="fa-solid fa-calendar"></i>
+        <input type="date" name="date_debut" value="<?= e($date_debut); ?>" aria-label="Date de début"
+               oninput="this.parentElement.classList.toggle('has-value', this.value !== '')">
+        <span>Date de début</span>
+    </div>
 
-    <input type="date"
-           name="date_fin"
-           value="<?= e($date_fin); ?>">
+    <div class="filter-date <?= $date_fin !== '' ? 'has-value' : ''; ?>">
+        <i class="fa-solid fa-calendar-check"></i>
+        <input type="date" name="date_fin" value="<?= e($date_fin); ?>" aria-label="Date de fin"
+               oninput="this.parentElement.classList.toggle('has-value', this.value !== '')">
+        <span>Date de fin</span>
+    </div>
 
     <button class="btn-rechercher">
 
@@ -154,10 +160,18 @@ $conges = $stmt->fetchAll();
 
     </button>
 
+    <a href="dashboard.php?page=conges" class="btn-reinitialiser">
+        <i class="fa-solid fa-rotate-left"></i>
+        Réinitialiser
+    </a>
+
 </form>
 
 <div class="table-container leave-table-container">
-    <h2><i class="fa-solid fa-calendar-days"></i> Liste des demandes de congé</h2>
+    <div class="table-heading">
+        <h2><i class="fa-solid fa-calendar-days"></i> Liste des demandes de congé</h2>
+        <span class="result-count"><?= count($conges); ?> résultat<?= count($conges) > 1 ? 's' : ''; ?></span>
+    </div>
 
 <table>
 
@@ -169,6 +183,7 @@ $conges = $stmt->fetchAll();
         <th>Date début</th>
         <th>Date fin</th>
         <th>Nombre de jours</th>
+        <th>Justificatif</th>
         <th>Statut</th>
         <th>Date demande</th>
         <th>Date traitement</th>
@@ -191,6 +206,17 @@ $conges = $stmt->fetchAll();
             <td><?= e($conge['date_fin']); ?></td>
 
             <td><?= $conge['nombre_jours']; ?></td>
+
+            <td>
+                <?php if (!empty($conge['certificat_medical'])) { ?>
+                    <a class="document-link" target="_blank" rel="noopener"
+                       href="../uploads/certificats/<?= rawurlencode(basename($conge['certificat_medical'])); ?>">
+                        <i class="fa-solid fa-file-pdf"></i> PDF
+                    </a>
+                <?php } else { ?>
+                    <span class="document-empty">—</span>
+                <?php } ?>
+            </td>
 
             <td>
 
@@ -228,6 +254,12 @@ else
 
         </tr>
 
+    <?php } ?>
+
+    <?php if (!$conges) { ?>
+        <tr class="empty-row">
+            <td colspan="11"><i class="fa-solid fa-inbox"></i> Aucune demande de congé ne correspond aux filtres sélectionnés.</td>
+        </tr>
     <?php } ?>
 
 </table>

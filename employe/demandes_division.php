@@ -121,4 +121,10 @@ $conges = $stmt->fetchAll();
 
     <?php } ?>
 
+    <?php if (!$conges) { ?>
+        <tr class="empty-row">
+            <td colspan="10"><i class="fa-solid fa-inbox"></i> Aucune demande de congé dans votre division.</td>
+        </tr>
+    <?php } ?>
+
 </table>

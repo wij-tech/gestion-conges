@@ -6,6 +6,7 @@ require_once "../config/database.php";
 // Récupérer toutes les divisions
 $sql = "SELECT * FROM divisions ORDER BY id DESC";
 $stmt = $pdo->query($sql);
+$divisions = $stmt->fetchAll();
 
 ?>
 
@@ -38,7 +39,7 @@ if(isset($_GET['error']) && $_GET['error']=="employes")
         <th>Actions</th>
     </tr>
 
-    <?php while ($division = $stmt->fetch()) { ?>
+    <?php foreach ($divisions as $division) { ?>
 
         <tr>
 
@@ -69,6 +70,12 @@ if(isset($_GET['error']) && $_GET['error']=="employes")
 
         </tr>
 
+    <?php } ?>
+
+    <?php if (!$divisions) { ?>
+        <tr class="empty-row">
+            <td colspan="3"><i class="fa-solid fa-building-circle-xmark"></i> Aucune division n’est enregistrée.</td>
+        </tr>
     <?php } ?>
 
 </table>

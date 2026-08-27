@@ -47,16 +47,11 @@ if (isset($_POST['ajouter'])) {
                 $stmtUser->execute([$username, password_hash($password, PASSWORD_DEFAULT), $role]);
                 $utilisateur_id = $pdo->lastInsertId();
 
-                $matriculeTemporaire = 'TMP-' . bin2hex(random_bytes(12));
                 $stmtEmploye = $pdo->prepare(
-                    'INSERT INTO employes (matricule, nom, prenom, cin, email, telephone, date_embauche, division_id, utilisateur_id, solde_annuel, reste_annee_precedente, solde_total)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 22, 0, 22)'
+                    'INSERT INTO employes (nom, prenom, cin, email, telephone, date_embauche, division_id, utilisateur_id, solde_annuel, reste_annee_precedente, solde_total)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 22, 0, 22)'
                 );
-                $stmtEmploye->execute([$matriculeTemporaire, $nom, $prenom, $cin, $email, $telephone, $date_embauche, $division_id, $utilisateur_id]);
-
-                $employeId = (int) $pdo->lastInsertId();
-                $matricule = 'EMP' . str_pad((string) $employeId, 4, '0', STR_PAD_LEFT);
-                $pdo->prepare('UPDATE employes SET matricule = ? WHERE id = ?')->execute([$matricule, $employeId]);
+                $stmtEmploye->execute([$nom, $prenom, $cin, $email, $telephone, $date_embauche, $division_id, $utilisateur_id]);
                 $pdo->commit();
 
                 header('Location: dashboard.php?page=employes');
