@@ -17,8 +17,7 @@ if (($_SESSION['role'] ?? '') !== 'admin') {
 $recherche = trim($_GET['recherche'] ?? '');
 $divisionId = filter_input(INPUT_GET, 'division_id', FILTER_VALIDATE_INT) ?: '';
 $role = $_GET['role'] ?? '';
-$dateDebut = $_GET['date_debut'] ?? '';
-$dateFin = $_GET['date_fin'] ?? '';
+$dateEmbauche = $_GET['date_embauche'] ?? '';
 $rolesAutorises = ['employe', 'chef_division'];
 $roleLabels = [
     'employe' => 'Employé',
@@ -28,18 +27,16 @@ $roleLabels = [
 if (!in_array($role, $rolesAutorises, true)) {
     $role = '';
 }
-foreach (['dateDebut', 'dateFin'] as $champ) {
-    if ($$champ !== '' && !preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $$champ)) {
-        $$champ = '';
-    }
+if ($dateEmbauche !== '' && !preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $dateEmbauche)) {
+    $dateEmbauche = '';
 }
 
 $conditions = [];
 $params = [];
 if ($recherche !== '') {
-    $conditions[] = '(employes.matricule LIKE ? OR employes.nom LIKE ? OR employes.prenom LIKE ? OR employes.cin LIKE ? OR employes.email LIKE ?)';
+    $conditions[] = '(employes.nom LIKE ? OR employes.prenom LIKE ? OR employes.cin LIKE ? OR employes.email LIKE ?)';
     $terme = '%' . $recherche . '%';
-    array_push($params, $terme, $terme, $terme, $terme, $terme);
+    array_push($params, $terme, $terme, $terme, $terme);
 }
 if ($divisionId !== '') {
     $conditions[] = 'employes.division_id = ?';
@@ -49,13 +46,9 @@ if ($role !== '') {
     $conditions[] = 'utilisateurs.role = ?';
     $params[] = $role;
 }
-if ($dateDebut !== '') {
-    $conditions[] = 'employes.date_embauche >= ?';
-    $params[] = $dateDebut;
-}
-if ($dateFin !== '') {
-    $conditions[] = 'employes.date_embauche <= ?';
-    $params[] = $dateFin;
+if ($dateEmbauche !== '') {
+    $conditions[] = 'employes.date_embauche = ?';
+    $params[] = $dateEmbauche;
 }
 
 $sql = "SELECT employes.*, divisions.nom_division, utilisateurs.role
@@ -68,6 +61,7 @@ if ($conditions) {
 $sql .= ' ORDER BY employes.id DESC';
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
+$employes = $stmt->fetchAll();
 
 $stmtDivisions = $pdo->query('SELECT id, nom_division FROM divisions ORDER BY nom_division');
 $divisionsFiltres = $stmtDivisions->fetchAll();
@@ -86,7 +80,7 @@ $messagesErreur = [
 $erreur = $messagesErreur[$_GET['error'] ?? ''] ?? '';
 ?>
 <?php if ($erreur !== '') { ?>
-    <p class="error"><?= e($erreur); ?></p>
+<p class="error"><?= e($erreur); ?></p>
 <?php } ?>
 
 
@@ -101,22 +95,18 @@ $erreur = $messagesErreur[$_GET['error'] ?? ''] ?? '';
 
 <!-- Barre de recherche -->
 
-<form method="GET" action="dashboard.php" class="search-form">
+<form method="GET" action="dashboard.php" class="search-form employee-filter">
 
     <input type="hidden" name="page" value="employes">
 
-    <input type="text"
-           name="recherche"
-           placeholder="Rechercher un employé..."
-           value="<?= e($recherche); ?>">
+    <input type="text" name="recherche" placeholder="Rechercher un employé..." value="<?= e($recherche); ?>">
 
     <select name="division_id">
         <option value="">Toutes les divisions</option>
         <?php foreach ($divisionsFiltres as $division) { ?>
-            <option value="<?= $division['id']; ?>"
-                <?= ($divisionId == $division['id']) ? 'selected' : ''; ?>>
-                <?= e($division['nom_division']); ?>
-            </option>
+        <option value="<?= $division['id']; ?>" <?= ($divisionId == $division['id']) ? 'selected' : ''; ?>>
+            <?= e($division['nom_division']); ?>
+        </option>
         <?php } ?>
     </select>
 
@@ -126,12 +116,17 @@ $erreur = $messagesErreur[$_GET['error'] ?? ''] ?? '';
         <option value="chef_division" <?= $role === 'chef_division' ? 'selected' : ''; ?>>Chef de division</option>
     </select>
 
-    <input type="date" name="date_debut" value="<?= e($dateDebut); ?>" aria-label="Embauché à partir du">
-    <input type="date" name="date_fin" value="<?= e($dateFin); ?>" aria-label="Embauché jusqu’au">
+    <div class="filter-date <?= $dateEmbauche !== '' ? 'has-value' : ''; ?>">
+        <i class="fa-solid fa-calendar"></i>
+        <input id="date_embauche" type="date" name="date_embauche" value="<?= e($dateEmbauche); ?>"
+               aria-label="Date d’embauche"
+               oninput="this.parentElement.classList.toggle('has-value', this.value !== '')">
+        <span>Date d’embauche</span>
+    </div>
 
-<button type="submit" class="btn-rechercher">
-Rechercher
-</button>
+    <button type="submit" class="btn-rechercher">
+        Rechercher
+    </button>
 
     <a href="dashboard.php?page=employes" class="btn-reinitialiser">Réinitialiser</a>
 
@@ -146,10 +141,10 @@ Rechercher
 
     <tr>
 
-        <th>Matricule</th>
+        <th>CIN</th>
         <th>Nom</th>
         <th>Prénom</th>
-        <th>CIN</th>
+
         <th>Email</th>
         <th>Téléphone</th>
         <th>Date embauche</th>
@@ -160,52 +155,58 @@ Rechercher
 
     </tr>
 
-    <?php while ($employe = $stmt->fetch()) { ?>
+    <?php foreach ($employes as $employe) { ?>
 
-        <tr>
+    <tr>
 
-            <td><?= e($employe['matricule']); ?></td>
+        <td><?= e($employe['cin']); ?></td>
 
-            <td><?= e($employe['nom']); ?></td>
+        <td><?= e($employe['nom']); ?></td>
 
-            <td><?= e($employe['prenom']); ?></td>
+        <td><?= e($employe['prenom']); ?></td>
 
-            <td><?= e($employe['cin']); ?></td>
 
-            <td><?= e($employe['email']); ?></td>
 
-            <td><?= e($employe['telephone']); ?></td>
+        <td><?= e($employe['email']); ?></td>
 
-            <td><?= $employe['date_embauche']; ?></td>
+        <td><?= e($employe['telephone']); ?></td>
 
-            <td><?= e($employe['nom_division']); ?></td>
+        <td><?= $employe['date_embauche']; ?></td>
 
-            <td><?= e($roleLabels[$employe['role']] ?? $employe['role']); ?></td>
+        <td><?= e($employe['nom_division']); ?></td>
 
-            <td><?= $employe['solde_total']; ?> jours</td>
+        <td><?= e($roleLabels[$employe['role']] ?? $employe['role']); ?></td>
+
+        <td><?= $employe['solde_total']; ?> jours</td>
 
         <td class="actions">
 
-    <a class="btn-icon btn-modifier"
-       href="dashboard.php?page=modifier_employe&id=<?= $employe['id']; ?>"
-       title="Modifier">
+            <a class="btn-icon btn-modifier" href="dashboard.php?page=modifier_employe&id=<?= $employe['id']; ?>"
+                title="Modifier">
 
-        <i class="fa-solid fa-pen-to-square"></i>
+                <i class="fa-solid fa-pen-to-square"></i>
 
-    </a>
+            </a>
 
-    <form method="POST" action="supprimer_employe.php" class="delete-form" onsubmit="return confirm('Voulez-vous vraiment supprimer cet employé ?')">
-        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()); ?>">
-        <input type="hidden" name="id" value="<?= $employe['id']; ?>">
-        <button type="submit" class="btn-icon btn-supprimer" title="Supprimer" aria-label="Supprimer">
-            <i class="fa-solid fa-trash"></i>
-        </button>
-    </form>
+            <form method="POST" action="supprimer_employe.php" class="delete-form"
+                onsubmit="return confirm('Voulez-vous vraiment supprimer cet employé ?')">
+                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()); ?>">
+                <input type="hidden" name="id" value="<?= $employe['id']; ?>">
+                <button type="submit" class="btn-icon btn-supprimer" title="Supprimer" aria-label="Supprimer">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </form>
 
-</td>
+        </td>
 
+    </tr>
+
+    <?php } ?>
+
+    <?php if (!$employes) { ?>
+        <tr class="empty-row">
+            <td colspan="10"><i class="fa-solid fa-users-slash"></i> Aucun employé ne correspond à votre recherche.</td>
         </tr>
-
     <?php } ?>
 
 </table>

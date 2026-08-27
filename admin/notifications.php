@@ -36,7 +36,6 @@ $notifications = $stmt->fetchAll();
             <th>Destinataire</th>
             <th>Titre</th>
             <th>Message</th>
-            <th>Type</th>
             <th>Statut</th>
             <th>Date</th>
             <th>Action</th>
@@ -59,8 +58,6 @@ $notifications = $stmt->fetchAll();
             <td><?= e($notification['titre']); ?></td>
 
             <td><?= e($notification['message']); ?></td>
-
-            <td><?= e($notification['type_notification']); ?></td>
 
             <td>
                 <?php if ($notification['lu'] == 1) { ?>
@@ -94,6 +91,12 @@ $notifications = $stmt->fetchAll();
 
         </tr>
 
+        <?php } ?>
+
+        <?php if (!$notifications) { ?>
+        <tr class="empty-row">
+            <td colspan="6"><i class="fa-solid fa-bell-slash"></i> Aucune notification à afficher.</td>
+        </tr>
         <?php } ?>
 
     </table>

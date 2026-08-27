@@ -5,11 +5,13 @@ session_start();
 require_once "config/database.php";
 require_once "cron/maj_solde_auto.php";
 
+$messageErreur = '';
+$username = '';
 
 if(isset($_POST['login']))
 {
 
-    $username = $_POST['username'];
+    $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'];
 
     $sql = "SELECT * FROM utilisateurs
@@ -51,13 +53,13 @@ elseif(
         }
         else
         {
-            echo "Mot de passe incorrect.";
+            $messageErreur = "Mot de passe incorrect. Vérifiez vos identifiants puis réessayez.";
         }
 
     }
     else
     {
-        echo "Utilisateur introuvable.";
+        $messageErreur = "Utilisateur introuvable. Vérifiez votre nom d'utilisateur.";
     }
 
 }
@@ -68,77 +70,101 @@ elseif(
 
 <head>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Gestion des Congés</title>
+    <title>Gestion des Congés</title>
 
-<link rel="stylesheet" href="assets/css/style.css?v=<?= filemtime(__DIR__ . '/assets/css/style.css'); ?>">
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=<?= filemtime(__DIR__ . '/assets/css/style.css'); ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
 </head>
 
 <body>
 
-<div class="login-container">
+    <div class="login-container">
 
-    <div class="login-card">
-        <img src="assets/images/logo.png"
-         alt="Logo Province d'Oujda"
-         class="logo">
+        <div class="login-card">
+            <img src="assets/images/logo.png" alt="Logo Province d'Oujda" class="logo">
 
-        <h1>
-<i class="fa-solid fa-calendar-check"></i>
-Gestion des Congés
-</h1>
-<p>
+            <h1>
+                <i class="fa-solid fa-calendar-check"></i>
+                Gestion des Congés
+            </h1>
+            <p>
 
-Système de gestion des congés du personnel
+                Système de gestion des congés du personnel
 
-</p>
+            </p>
 
-        <p>Province d'Oujda</p>
+            <p>Wilaya d'Oujda</p>
 
-        <form method="POST">
+            <?php if ($messageErreur !== ''): ?>
+            <div class="login-alert" role="alert" aria-live="polite">
+                <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                <div>
+                    <strong>Connexion impossible</strong>
+                    <span><?= htmlspecialchars($messageErreur, ENT_QUOTES, 'UTF-8'); ?></span>
+                </div>
+            </div>
+            <?php endif; ?>
 
-            <div class="input-group">
+            <form method="POST">
 
-<i class="fa-solid fa-user"></i>
-            <input type="text"
-                   name="username"
-                   placeholder="Nom d'utilisateur"
-                   required>
+                <div class="input-group <?= $messageErreur !== '' ? 'has-error' : ''; ?>">
+
+                    <i class="fa-solid fa-user" aria-hidden="true"></i>
+                    <input type="text" name="username" placeholder="Nom d'utilisateur"
+                        value="<?= htmlspecialchars($username, ENT_QUOTES, 'UTF-8'); ?>" autocomplete="username"
+                        aria-label="Nom d'utilisateur" required>
+                </div>
+
+                <div class="input-group <?= $messageErreur !== '' ? 'has-error' : ''; ?>">
+
+                    <i class="fa-solid fa-lock" aria-hidden="true"></i>
+
+                    <input type="password" name="password" placeholder="Mot de passe" autocomplete="current-password"
+                        aria-label="Mot de passe" id="password" required>
+                    <button type="button" class="password-toggle" aria-label="Afficher le mot de passe"
+                        aria-pressed="false" title="Afficher le mot de passe">
+                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                    </button>
+                </div>
+
+                <button type="submit" name="login">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+
+
+                    Se connecter
+
+                </button>
+
+            </form>
+            <div class="footer-login">
+                © 2026 Wilaya d'Oujda-Angad
+
+                Système de gestion des congés du personnel
             </div>
 
-<div class="input-group">
-
-<i class="fa-solid fa-lock"></i>
-
-            <input type="password"
-                   name="password"
-                   placeholder="Mot de passe"
-                   required>
-</div>
-
-            <button type="submit" name="login">
-                <i class="fa-solid fa-right-to-bracket"></i>
-
-
-                Se connecter
-
-            </button>
-
-        </form>
-        <div class="footer-login">
-    © 2026 Province d'Oujda-Angad
-
-Système de gestion des congés du personnel
-</div>
+        </div>
 
     </div>
 
-</div>
+    <script>
+    const passwordInput = document.getElementById('password');
+    const passwordToggle = document.querySelector('.password-toggle');
+
+    passwordToggle.addEventListener('click', () => {
+        const isVisible = passwordInput.type === 'text';
+        passwordInput.type = isVisible ? 'password' : 'text';
+        passwordToggle.setAttribute('aria-pressed', String(!isVisible));
+        passwordToggle.setAttribute('aria-label', isVisible ? 'Afficher le mot de passe' :
+            'Masquer le mot de passe');
+        passwordToggle.setAttribute('title', isVisible ? 'Afficher le mot de passe' :
+        'Masquer le mot de passe');
+        passwordToggle.querySelector('i').className = isVisible ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+    });
+    </script>
 
 </body>
 

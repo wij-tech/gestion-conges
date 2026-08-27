@@ -3,6 +3,9 @@
 require_once "../config/auth.php";
 require_once "../config/database.php";
 
+$page = $_GET['page'] ?? 'home';
+$roleLabel = ($_SESSION['role'] ?? '') === 'chef_division' ? 'Chef de division' : 'Employé';
+
 if (!in_array($_SESSION['role'] ?? '', ['employe', 'chef_division'], true)) {
     http_response_code(403);
     exit('Accès refusé.');
@@ -111,7 +114,7 @@ if($_SESSION['role'] == "chef_division")
 
 // Liste des employés de la division
 $sql = "SELECT
-            matricule,
+            cin,
             nom,
             prenom,
             email,
@@ -137,92 +140,92 @@ $employesDivision = $stmt->fetchAll();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Employé</title>
 
-    <link rel="stylesheet"
-          href="../assets/css/dashboard.css?v=<?php echo time();?>">
+    <link rel="stylesheet" href="../assets/css/dashboard.css?v=<?php echo time();?>">
 
-    <link rel="stylesheet"
-          href="../assets/css/table.css?v=<?php echo time();?>">
+    <link rel="stylesheet" href="../assets/css/table.css?v=<?php echo time();?>">
 
-    <link rel="stylesheet"
-          href="../assets/css/form.css?v=<?php echo time();?>">
-          <link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/form.css?v=<?php echo time();?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
 </head>
 
 <body>
 
-<div class="container">
+    <div class="container">
 
-    <div class="sidebar">
+        <div class="sidebar">
 
-        <img src="../assets/images/logo.png"
-     alt="Logo Province"
-     class="sidebar-logo">
+            <img src="../assets/images/logo.png" alt="Logo Province" class="sidebar-logo">
 
-<h2 class="sidebar-title">
-    Province d'Oujda
-</h2>
+            <h2 class="sidebar-title">
+                Wilaya d'Oujda
+            </h2>
 
-        <ul>
+            <ul>
 
-<li>
-    <a href="dashboard.php?page=home">
-        <i class="fa-solid fa-chart-line"></i>
-        Tableau de bord
-    </a>
-</li>
+                <li>
+                    <a class="<?= $page === 'home' ? 'active' : ''; ?>" href="dashboard.php?page=home">
+                        <i class="fa-solid fa-chart-line"></i>
+                        Tableau de bord
+                    </a>
+                </li>
 
-<li>
-    <a href="dashboard.php?page=demander_conge">
-        <i class="fa-solid fa-calendar-plus"></i>
-        Demander un congé
-    </a>
-</li>
+                <li>
+                    <a class="<?= $page === 'demander_conge' ? 'active' : ''; ?>" href="dashboard.php?page=demander_conge">
+                        <i class="fa-solid fa-calendar-plus"></i>
+                        Demander un congé
+                    </a>
+                </li>
 
-<li>
-    <a href="dashboard.php?page=mes_conges">
-        <i class="fa-solid fa-calendar-check"></i>
-        Mes congés
-    </a>
-</li>
+                <li>
+                    <a class="<?= $page === 'mes_conges' ? 'active' : ''; ?>" href="dashboard.php?page=mes_conges">
+                        <i class="fa-solid fa-calendar-check"></i>
+                        Mes congés
+                    </a>
+                </li>
 
-<li>
-    <a href="dashboard.php?page=notifications">
-        <i class="fa-solid fa-bell"></i>
-        Mes notifications
-    </a>
-</li>
+                <li>
+                    <a class="<?= $page === 'notifications' ? 'active' : ''; ?>" href="dashboard.php?page=notifications">
+                        <i class="fa-solid fa-bell"></i>
+                        Mes notifications
+                    </a>
+                </li>
 
-<?php if ($_SESSION['role'] == "chef_division") { ?>
+                <?php if ($_SESSION['role'] == "chef_division") { ?>
 
-<li>
-    <a href="dashboard.php?page=demandes_division">
-        <i class="fa-solid fa-file-signature"></i>
-        Demandes de ma division
-    </a>
-</li>
+                <li>
+                    <a class="<?= $page === 'demandes_division' ? 'active' : ''; ?>" href="dashboard.php?page=demandes_division">
+                        <i class="fa-solid fa-file-signature"></i>
+                        Demandes de ma division
+                    </a>
+                </li>
 
-<?php } ?>
+                <?php } ?>
 
-<li>
-    <a href="../logout.php">
-        <i class="fa-solid fa-right-from-bracket"></i>
-        Déconnexion
-    </a>
-</li>
+            </ul>
 
-</ul>
+            <div class="sidebar-footer">
+                <div class="sidebar-profile">
+                    <div class="sidebar-avatar"><i class="fa-solid fa-user"></i></div>
+                    <div>
+                        <strong><?= e($_SESSION['username'] ?? 'Utilisateur'); ?></strong>
+                        <span><?= e($roleLabel); ?></span>
+                    </div>
+                </div>
 
-    </div>
+                <a class="sidebar-logout" href="../logout.php">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    Déconnexion
+                </a>
+            </div>
+
+        </div>
 
 
 
-    <div class="main-content">
+        <div class="main-content">
 
-        <?php
-
-        $page = $_GET['page'] ?? 'home';
+            <?php
 
         if ($page == 'home') {
 
@@ -230,153 +233,158 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
 
             <h1>Bienvenue <?= e($employe['prenom']); ?> !</h1>
 
-<div class="cards">
+            <div class="cards">
 
-    <div class="card">
+                <div class="card card-primary">
 
-        <i class="fa-solid fa-wallet card-icon"></i>
+                    <i class="fa-solid fa-wallet card-icon"></i>
 
-        <h3>Solde restant</h3>
+                    <h3>Solde restant</h3>
 
-        <p><?= $employe['solde_total']; ?> jours</p>
+                    <p><?= $employe['solde_total']; ?> jours</p>
 
-    </div>
+                </div>
 
-    <div class="card">
+                <div class="card card-green">
 
-        <i class="fa-solid fa-circle-check card-icon"></i>
+                    <i class="fa-solid fa-circle-check card-icon"></i>
 
-        <h3>Congés validés</h3>
+                    <h3>Congés validés</h3>
 
-        <p><?= $totalValide ?></p>
+                    <p><?= $totalValide ?></p>
 
-    </div>
+                </div>
 
-    <div class="card">
+                <div class="card card-orange">
 
-        <i class="fa-solid fa-hourglass-half card-icon"></i>
+                    <i class="fa-solid fa-hourglass-half card-icon"></i>
 
-        <h3>Congés en attente</h3>
+                    <h3>Congés en attente</h3>
 
-        <p><?= $totalAttente ?></p>
+                    <p><?= $totalAttente ?></p>
 
-    </div>
+                </div>
 
-    <div class="card">
+                <div class="card card-violet">
 
-        <i class="fa-solid fa-bell card-icon"></i>
+                    <i class="fa-solid fa-bell card-icon"></i>
 
-        <h3>Notifications</h3>
+                    <h3>Notifications</h3>
 
-        <p><?= $totalNotifications ?></p>
+                    <p><?= $totalNotifications ?></p>
 
-    </div>
+                </div>
 
-    </div>
+            </div>
 
-    <?php if($_SESSION['role']=="chef_division"){ ?>
+            <?php if($_SESSION['role']=="chef_division"){ ?>
 
-<section class="division-dashboard">
-<div class="division-heading">
-    <div>
-        <p class="eyebrow">Vue de la division</p>
-        <h2>Suivi de mon équipe</h2>
-    </div>
-    <i class="fa-solid fa-people-group"></i>
-</div>
+            <section class="division-dashboard">
+                <div class="division-heading">
+                    <div>
+                        <p class="eyebrow">Vue de la division</p>
+                        <h2>Suivi de mon équipe</h2>
+                    </div>
+                    <i class="fa-solid fa-people-group"></i>
+                </div>
 
-<div class="cards division-cards">
+                <div class="cards division-cards">
 
-    <div class="card">
+                    <div class="card">
 
-        <i class="fa-solid fa-users card-icon"></i>
+                        <i class="fa-solid fa-users card-icon"></i>
 
-        <h3>Employés de la division</h3>
+                        <h3>Employés de la division</h3>
 
-        <p><?= $totalEmployesDivision ?></p>
+                        <p><?= $totalEmployesDivision ?></p>
 
-    </div>
+                    </div>
 
-    <div class="card">
+                    <div class="card">
 
-        <i class="fa-solid fa-hourglass-half card-icon"></i>
+                        <i class="fa-solid fa-hourglass-half card-icon"></i>
 
-        <h3>Demandes en attente</h3>
+                        <h3>Demandes en attente</h3>
 
-        <p><?= $totalAttenteDivision ?></p>
+                        <p><?= $totalAttenteDivision ?></p>
 
-    </div>
+                    </div>
 
-    <div class="card">
+                    <div class="card">
 
-        <i class="fa-solid fa-circle-check card-icon"></i>
+                        <i class="fa-solid fa-circle-check card-icon"></i>
 
-        <h3>Congés validés</h3>
+                        <h3>Congés validés</h3>
 
-        <p><?= $totalValideDivision ?></p>
+                        <p><?= $totalValideDivision ?></p>
 
-    </div>
+                    </div>
 
-    <div class="card">
+                    <div class="card">
 
-        <i class="fa-solid fa-circle-xmark card-icon"></i>
+                        <i class="fa-solid fa-circle-xmark card-icon"></i>
 
-        <h3>Congés refusés</h3>
+                        <h3>Congés refusés</h3>
 
-        <p><?= $totalRefuseDivision ?></p>
+                        <p><?= $totalRefuseDivision ?></p>
 
-    </div>
+                    </div>
 
-</div>
+                </div>
 
-<div class="table-container">
+                <div class="table-container">
 
-<h2>
-<i class="fa-solid fa-users"></i>
-Employés de ma division
-</h2>
+                    <h2>
+                        <i class="fa-solid fa-users"></i>
+                        Employés de ma division
+                    </h2>
 
-<table>
+                    <table>
 
-<tr>
+                        <tr>
 
-    <th>Matricule</th>
-    <th>Nom</th>
-    <th>Prénom</th>
-    <th>Email</th>
-    <th>Téléphone</th>
-    <th>Solde restant</th>
+                            <th>CIN</th>
+                            <th>Nom</th>
+                            <th>Prénom</th>
+                            <th>Email</th>
+                            <th>Téléphone</th>
+                            <th>Solde restant</th>
 
-</tr>
+                        </tr>
 
-<?php foreach($employesDivision as $e){ ?>
+                        <?php foreach($employesDivision as $e){ ?>
 
-<tr>
+                        <tr>
 
-    <td><?= e($e['matricule']); ?></td>
+                            <td><?= e($e['cin']); ?></td>
 
-    <td><?= e($e['nom']); ?></td>
+                            <td><?= e($e['nom']); ?></td>
 
-    <td><?= e($e['prenom']); ?></td>
+                            <td><?= e($e['prenom']); ?></td>
 
-    <td><?= e($e['email']); ?></td>
+                            <td><?= e($e['email']); ?></td>
 
-    <td><?= e($e['telephone']); ?></td>
+                            <td><?= e($e['telephone']); ?></td>
 
-    <td><?= $e['solde_total']; ?> jours</td>
+                            <td><?= $e['solde_total']; ?> jours</td>
 
-</tr>
+                        </tr>
 
-<?php } ?>
+                        <?php } ?>
+                        <?php if (!$employesDivision) { ?>
+                        <tr class="empty-row">
+                            <td colspan="6"><i class="fa-solid fa-users-slash"></i> Aucun employé dans cette division.</td>
+                        </tr>
+                        <?php } ?>
 
-</table>
+                    </table>
 
-</div>
-</section>
+                </div>
+            </section>
 
-<?php } ?>
+            <?php } ?>
 
-        <?php
+            <?php
 
         }
 
@@ -406,9 +414,10 @@ Employés de ma division
 
         ?>
 
+        </div>
+
     </div>
 
-</div>
-
 </body>
+
 </html>
