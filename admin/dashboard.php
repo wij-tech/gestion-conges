@@ -114,6 +114,52 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($paramsConges);
 $derniersConges = $stmt->fetchAll();
 
+// Evolution des congés par date de début, pour les trois niveaux de période.
+$anneeCourante = (int) date('Y');
+$evolutionDivisionJoin = '';
+$evolutionDivisionCondition = '';
+$evolutionDivisionParams = [];
+if ($division !== '') {
+    $evolutionDivisionJoin = ' INNER JOIN employes ON employes.id = conges.employe_id';
+    $evolutionDivisionCondition = ' WHERE employes.division_id = ?';
+    $evolutionDivisionParams[] = $division;
+}
+
+$stmt = $pdo->prepare("SELECT YEAR(conges.date_debut) AS periode, COUNT(*) AS total
+                    FROM conges" . $evolutionDivisionJoin . $evolutionDivisionCondition . "
+                    GROUP BY YEAR(conges.date_debut)
+                    ORDER BY periode");
+$stmt->execute($evolutionDivisionParams);
+$evolutionAnnee = [];
+foreach ($stmt->fetchAll() as $ligne) {
+    $evolutionAnnee[(string) $ligne['periode']] = (int) $ligne['total'];
+}
+
+$stmt = $pdo->prepare("SELECT MONTH(conges.date_debut) AS periode, COUNT(*) AS total
+                       FROM conges" . $evolutionDivisionJoin . "
+                       WHERE YEAR(conges.date_debut) = ?" . ($division !== '' ? ' AND employes.division_id = ?' : '') . "
+                       GROUP BY MONTH(conges.date_debut)
+                       ORDER BY periode");
+$stmt->execute($division !== '' ? [$anneeCourante, $division] : [$anneeCourante]);
+$evolutionMois = array_fill(1, 12, 0);
+foreach ($stmt->fetchAll() as $ligne) {
+    $evolutionMois[(int) $ligne['periode']] = (int) $ligne['total'];
+}
+
+$stmt = $pdo->prepare("SELECT WEEK(conges.date_debut, 1) AS periode, COUNT(*) AS total
+                       FROM conges" . $evolutionDivisionJoin . "
+                       WHERE YEAR(conges.date_debut) = ?" . ($division !== '' ? ' AND employes.division_id = ?' : '') . "
+                       GROUP BY WEEK(conges.date_debut, 1)
+                       ORDER BY periode");
+$stmt->execute($division !== '' ? [$anneeCourante, $division] : [$anneeCourante]);
+$evolutionSemaine = array_fill(1, 53, 0);
+foreach ($stmt->fetchAll() as $ligne) {
+    $semaine = (int) $ligne['periode'];
+    if ($semaine >= 1 && $semaine <= 53) {
+        $evolutionSemaine[$semaine] = (int) $ligne['total'];
+    }
+}
+
 
 ?>
 
@@ -294,6 +340,7 @@ if ($page == 'home') {
                 <script>
                 const typesCtx = document.getElementById('typesCongeChart');
 
+
                 new Chart(typesCtx, {
                     type: 'bar',
                     data: {
@@ -392,6 +439,85 @@ if ($page == 'home') {
                         }
                     }
                 });
+                </script>
+
+                <section class="period-chart-container">
+                    <div class="period-chart-header">
+                        <div>
+                            <h2>Évolution des congés</h2>
+                            <p>Suivez l'évolution des demandes dans le temps.</p>
+                        </div>
+                        <form method="GET" action="dashboard.php" class="period-controls">
+                            <input type="hidden" name="page" value="home">
+                            <input type="hidden" name="statut" value="<?= e($statut); ?>">
+                            <input type="hidden" name="type" value="<?= e($type); ?>">
+                            <label class="period-selector">
+                                <span>Division</span>
+                                <select id="adminDivisionSelect" name="division" onchange="this.form.submit()">
+                                    <option value="">Toutes les divisions</option>
+                                    <?php foreach ($divisions as $d) { ?>
+                                    <option value="<?= (int) $d['id']; ?>" <?= $division == $d['id'] ? 'selected' : ''; ?>>
+                                        <?= e($d['nom_division']); ?>
+                                    </option>
+                                    <?php } ?>
+                                </select>
+                            </label>
+                            <label class="period-selector">
+                                <span>Période</span>
+                                <select id="adminPeriodSelect">
+                                    <option value="semaine">Semaine</option>
+                                    <option value="mois" selected>Mois</option>
+                                    <option value="annee">Année</option>
+                                </select>
+                            </label>
+                        </form>
+                    </div>
+                    <div class="period-chart">
+                        <canvas id="adminPeriodChart"></canvas>
+                    </div>
+                </section>
+
+                <script>
+                (() => {
+                    const chartData = <?= json_encode([
+                        'semaine' => ['labels' => array_map(fn($value) => 'S' . $value, array_keys($evolutionSemaine)), 'values' => array_values($evolutionSemaine)],
+                        'mois' => ['labels' => ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'], 'values' => array_values($evolutionMois)],
+                        'annee' => ['labels' => array_keys($evolutionAnnee), 'values' => array_values($evolutionAnnee)]
+                    ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+                    const select = document.getElementById('adminPeriodSelect');
+                    const context = document.getElementById('adminPeriodChart');
+                    const periodChart = new Chart(context, {
+                        type: 'line',
+                        data: {
+                            labels: chartData.mois.labels,
+                            datasets: [{
+                                label: 'Nombre de congés',
+                                data: chartData.mois.values,
+                                borderColor: '#2563eb',
+                                backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                                fill: true,
+                                tension: 0.35,
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                pointBackgroundColor: '#2563eb'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { grid: { display: false } },
+                                y: { beginAtZero: true, ticks: { precision: 0 } }
+                            }
+                        }
+                    });
+                    select.addEventListener('change', () => {
+                        periodChart.data.labels = chartData[select.value].labels;
+                        periodChart.data.datasets[0].data = chartData[select.value].values;
+                        periodChart.update();
+                    });
+                })();
                 </script>
 
             </div>

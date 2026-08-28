@@ -13,15 +13,51 @@ $stmt->execute([$_SESSION['id']]);
 
 $employe = $stmt->fetch();
 
+$recherche = trim((string) ($_GET['recherche'] ?? ''));
+$statut = $_GET['statut'] ?? '';
+$periodeDebut = $_GET['periode_debut'] ?? '';
+$periodeFin = $_GET['periode_fin'] ?? '';
+$statutsAutorises = ['En attente', 'Valide', 'Refuse', 'Annule'];
+
+if (!in_array($statut, $statutsAutorises, true)) {
+    $statut = '';
+}
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $periodeDebut)) {
+    $periodeDebut = '';
+}
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $periodeFin)) {
+    $periodeFin = '';
+}
 
 // Récupérer tous ses congés
+$conditions = ['employe_id = ?'];
+$params = [$employe['id']];
+
+if ($recherche !== '') {
+    $conditions[] = '(type_conge LIKE ? OR motif LIKE ?)';
+    $params[] = '%' . $recherche . '%';
+    $params[] = '%' . $recherche . '%';
+}
+if ($statut !== '') {
+    $conditions[] = 'statut = ?';
+    $params[] = $statut;
+}
+if ($periodeDebut !== '') {
+    $conditions[] = 'date_fin >= ?';
+    $params[] = $periodeDebut;
+}
+if ($periodeFin !== '') {
+    $conditions[] = 'date_debut <= ?';
+    $params[] = $periodeFin;
+}
+
 $sql = "SELECT *
         FROM conges
-        WHERE employe_id = ?
+        WHERE " . implode(' AND ', $conditions) . "
         ORDER BY date_demande DESC";
 
 $stmt = $pdo->prepare($sql);
-$stmt->execute([$employe['id']]);
+$stmt->execute($params);
 
 $conges = $stmt->fetchAll();
 
@@ -41,6 +77,30 @@ $conges = $stmt->fetchAll();
 </a>
 
 <br><br>
+
+<form method="GET" class="search-form leave-filter">
+    <input type="hidden" name="page" value="mes_conges">
+    <input type="search" name="recherche" placeholder="Type ou motif..." value="<?= e($recherche); ?>">
+    <select name="statut">
+        <option value="">Tous les statuts</option>
+        <?php foreach ($statutsAutorises as $statutOption) { ?>
+        <option value="<?= e($statutOption); ?>" <?= $statut === $statutOption ? 'selected' : ''; ?>>
+            <?= e($statutOption); ?>
+        </option>
+        <?php } ?>
+    </select>
+    <label class="filter-field<?= $periodeDebut !== '' ? ' has-value' : ''; ?>">
+        <span>Date début</span>
+        <input class="date-filter" type="date" name="periode_debut" value="<?= e($periodeDebut); ?>"
+            oninput="this.parentElement.classList.toggle('has-value', this.value !== '')">
+    </label>
+    <label class="filter-field<?= $periodeFin !== '' ? ' has-value' : ''; ?>">
+        <span>Date fin</span>
+        <input class="date-filter" type="date" name="periode_fin" value="<?= e($periodeFin); ?>"
+            oninput="this.parentElement.classList.toggle('has-value', this.value !== '')">
+    </label>
+    <button type="submit" class="btn-rechercher"><i class="fa-solid fa-filter"></i> Filtrer</button>
+</form>
 
 <div class="table-container personal-leaves-table">
 <div class="table-heading">
