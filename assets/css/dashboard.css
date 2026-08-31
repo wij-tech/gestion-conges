@@ -371,6 +371,76 @@ h2 i {
     max-height: 280px;
 }
 
+.period-chart-container {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-top: 22px;
+    padding: 22px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+    min-width: 0;
+}
+
+.period-chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.period-chart-header h2 {
+    margin: 0 0 5px;
+    color: #0f172a;
+    font-size: 18px;
+}
+
+.period-chart-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.period-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.period-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0;
+}
+
+.period-selector select {
+    min-width: 110px;
+    height: 38px;
+    padding: 0 30px 0 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #334155;
+    cursor: pointer;
+}
+
+.period-chart {
+    position: relative;
+    height: 320px;
+    width: 100%;
+}
+
+.period-chart canvas {
+    max-width: 100%;
+}
+
 /* =========================================================
    TABLEAUX
 ========================================================= */
@@ -846,6 +916,29 @@ button i,
 
     .graph-container {
         padding: 16px;
+    }
+
+    .period-chart-container {
+        padding: 16px;
+    }
+
+    .period-chart-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .period-controls {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .period-selector {
+        justify-content: space-between;
+    }
+
+    .period-selector select {
+        flex: 1;
+        min-width: 0;
     }
 
     .search-form {
