@@ -2,6 +2,8 @@
 
 require_once "../config/auth.php";
 require_once "../config/database.php";
+require_once "../config/statut_conge.php";
+require_once "../config/graphique_conges.php";
 
 $page = $_GET['page'] ?? 'home';
 $roleLabel = 'Administrateur';
@@ -14,7 +16,7 @@ $division = filter_input(INPUT_GET, 'division', FILTER_VALIDATE_INT) ?: '';
 $statut = $_GET['statut'] ?? '';
 $type = $_GET['type'] ?? '';
 
-$statutsAutorises = ['En attente', 'Valide', 'Refuse'];
+$statutsAutorises = ['en_attente_chef', 'en_attente_admin', 'validee', 'refusee'];
 $typesAutorises = ['Congé annuel', 'Congé maladie', 'Congé exceptionnel', 'Congé sans solde'];
 
 if (!in_array($statut, $statutsAutorises, true)) {
@@ -65,9 +67,9 @@ if ($type !== '') {
 $whereConges = $conditionsConges ? ' WHERE ' . implode(' AND ', $conditionsConges) : '';
 
 $sql = "SELECT
-            SUM(conges.statut = 'Valide') AS valide,
-            SUM(conges.statut = 'Refuse') AS refuse,
-            SUM(conges.statut = 'En attente') AS attente,
+            SUM(conges.statut = 'validee') AS valide,
+            SUM(conges.statut = 'refusee') AS refuse,
+            SUM(conges.statut IN ('en_attente_chef', 'en_attente_admin')) AS attente,
             SUM(conges.type_conge = 'Congé annuel') AS annuel,
             SUM(conges.type_conge = 'Congé maladie') AS maladie,
             SUM(conges.type_conge = 'Congé exceptionnel') AS exceptionnel,
@@ -114,51 +116,7 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($paramsConges);
 $derniersConges = $stmt->fetchAll();
 
-// Evolution des congés par date de début, pour les trois niveaux de période.
-$anneeCourante = (int) date('Y');
-$evolutionDivisionJoin = '';
-$evolutionDivisionCondition = '';
-$evolutionDivisionParams = [];
-if ($division !== '') {
-    $evolutionDivisionJoin = ' INNER JOIN employes ON employes.id = conges.employe_id';
-    $evolutionDivisionCondition = ' WHERE employes.division_id = ?';
-    $evolutionDivisionParams[] = $division;
-}
-
-$stmt = $pdo->prepare("SELECT YEAR(conges.date_debut) AS periode, COUNT(*) AS total
-                    FROM conges" . $evolutionDivisionJoin . $evolutionDivisionCondition . "
-                    GROUP BY YEAR(conges.date_debut)
-                    ORDER BY periode");
-$stmt->execute($evolutionDivisionParams);
-$evolutionAnnee = [];
-foreach ($stmt->fetchAll() as $ligne) {
-    $evolutionAnnee[(string) $ligne['periode']] = (int) $ligne['total'];
-}
-
-$stmt = $pdo->prepare("SELECT MONTH(conges.date_debut) AS periode, COUNT(*) AS total
-                       FROM conges" . $evolutionDivisionJoin . "
-                       WHERE YEAR(conges.date_debut) = ?" . ($division !== '' ? ' AND employes.division_id = ?' : '') . "
-                       GROUP BY MONTH(conges.date_debut)
-                       ORDER BY periode");
-$stmt->execute($division !== '' ? [$anneeCourante, $division] : [$anneeCourante]);
-$evolutionMois = array_fill(1, 12, 0);
-foreach ($stmt->fetchAll() as $ligne) {
-    $evolutionMois[(int) $ligne['periode']] = (int) $ligne['total'];
-}
-
-$stmt = $pdo->prepare("SELECT WEEK(conges.date_debut, 1) AS periode, COUNT(*) AS total
-                       FROM conges" . $evolutionDivisionJoin . "
-                       WHERE YEAR(conges.date_debut) = ?" . ($division !== '' ? ' AND employes.division_id = ?' : '') . "
-                       GROUP BY WEEK(conges.date_debut, 1)
-                       ORDER BY periode");
-$stmt->execute($division !== '' ? [$anneeCourante, $division] : [$anneeCourante]);
-$evolutionSemaine = array_fill(1, 53, 0);
-foreach ($stmt->fetchAll() as $ligne) {
-    $semaine = (int) $ligne['periode'];
-    if ($semaine >= 1 && $semaine <= 53) {
-        $evolutionSemaine[$semaine] = (int) $ligne['total'];
-    }
-}
+$evolutionConges = compter_employes_en_conge($pdo, $division !== '' ? (int) $division : null);
 
 
 ?>
@@ -235,13 +193,13 @@ foreach ($stmt->fetchAll() as $ligne) {
             </ul>
 
             <div class="sidebar-footer">
-                <div class="sidebar-profile">
+                <a class="sidebar-profile" href="../profil.php">
                     <div class="sidebar-avatar"><i class="fa-solid fa-user-shield"></i></div>
                     <div>
                         <strong><?= e($_SESSION['username'] ?? 'Administrateur'); ?></strong>
                         <span><?= e($roleLabel); ?></span>
                     </div>
-                </div>
+                </a>
 
                 <a class="sidebar-logout" href="../logout.php">
                     <i class="fa-solid fa-right-from-bracket"></i>
@@ -444,8 +402,8 @@ if ($page == 'home') {
                 <section class="period-chart-container">
                     <div class="period-chart-header">
                         <div>
-                            <h2>Évolution des congés</h2>
-                            <p>Suivez l'évolution des demandes dans le temps.</p>
+                            <h2>Employés en congé par période</h2>
+                            <p>Nombre d'employés distincts ayant un congé validé pendant la période.</p>
                         </div>
                         <form method="GET" action="dashboard.php" class="period-controls">
                             <input type="hidden" name="page" value="home">
@@ -480,9 +438,9 @@ if ($page == 'home') {
                 <script>
                 (() => {
                     const chartData = <?= json_encode([
-                        'semaine' => ['labels' => array_map(fn($value) => 'S' . $value, array_keys($evolutionSemaine)), 'values' => array_values($evolutionSemaine)],
-                        'mois' => ['labels' => ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'], 'values' => array_values($evolutionMois)],
-                        'annee' => ['labels' => array_keys($evolutionAnnee), 'values' => array_values($evolutionAnnee)]
+                        'semaine' => $evolutionConges['semaine'],
+                        'mois' => $evolutionConges['mois'],
+                        'annee' => $evolutionConges['annee']
                     ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
                     const select = document.getElementById('adminPeriodSelect');
                     const context = document.getElementById('adminPeriodChart');
@@ -491,7 +449,7 @@ if ($page == 'home') {
                         data: {
                             labels: chartData.mois.labels,
                             datasets: [{
-                                label: 'Nombre de congés',
+                                label: "Nombre d'employés en congé",
                                 data: chartData.mois.values,
                                 borderColor: '#2563eb',
                                 backgroundColor: 'rgba(37, 99, 235, 0.12)',
@@ -539,9 +497,10 @@ if ($page == 'home') {
 
                     <select name="statut">
                         <option value="">Tous les statuts</option>
-                        <option value="En attente" <?= ($statut=="En attente")?"selected":"";?>>En attente</option>
-                        <option value="Valide" <?= ($statut=="Valide")?"selected":"";?>>Validé</option>
-                        <option value="Refuse" <?= ($statut=="Refuse")?"selected":"";?>>Refusé</option>
+                        <option value="en_attente_chef" <?= ($statut=="en_attente_chef")?"selected":"";?>>En attente chef</option>
+                        <option value="en_attente_admin" <?= ($statut=="en_attente_admin")?"selected":"";?>>En attente admin</option>
+                        <option value="validee" <?= ($statut=="validee")?"selected":"";?>>Validé</option>
+                        <option value="refusee" <?= ($statut=="refusee")?"selected":"";?>>Refusé</option>
                     </select>
 
                     <select name="type">
@@ -574,7 +533,7 @@ if ($page == 'home') {
                         <tr>
                             <td><?= e($conge['nom']); ?> <?= e($conge['prenom']); ?></td>
                             <td><?= e($conge['type_conge']); ?></td>
-                            <td><?= e($conge['statut']); ?></td>
+                            <td><?= statut_conge_badge($conge['statut']); ?></td>
                         </tr>
                         <?php } ?>
                         <?php if (!$derniersConges) { ?>

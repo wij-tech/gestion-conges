@@ -1,8 +1,11 @@
 <?php
 
 require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../config/solde_annuel.php";
 
-$anneeActuelle = date("Y");
+$anneeActuelle = (int) date("Y");
+
+garantir_table_soldes_annuels($pdo);
 
 /* Vérifier la dernière mise à jour */
 
@@ -12,44 +15,32 @@ $parametre = $stmt->fetch();
 
 /* Si la mise à jour est déjà faite */
 
-if($parametre['derniere_maj_solde'] == $anneeActuelle){
-    return;
+if($parametre && (int) $parametre['derniere_maj_solde'] == $anneeActuelle){
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM soldes_annuels WHERE annee = ?');
+    $stmt->execute([$anneeActuelle]);
+    if ((int) $stmt->fetchColumn() > 0) {
+        return;
+    }
 }
 
 /* Mise à jour des soldes */
 
-$sql = "SELECT id, utilisateur_id, solde_total
+$sql = "SELECT id
         FROM employes";
 
 $stmt = $pdo->query($sql);
 $employes = $stmt->fetchAll();
 
 foreach($employes as $employe){
-
-    $ancienSolde = $employe['solde_total'];
-    $nouveauSolde = $ancienSolde + 22;
-
-    $stmtUpdate = $pdo->prepare("
-        UPDATE employes
-        SET
-        reste_annee_precedente = ?,
-        solde_total = ?
-        WHERE id = ?
-    ");
-
-    $stmtUpdate->execute([
-        $ancienSolde,
-        $nouveauSolde,
-        $employe['id']
-    ]);
+    $solde = obtenir_solde_annuel($pdo, (int) $employe['id'], $anneeActuelle);
+    synchroniser_ancien_solde($pdo, (int) $employe['id'], (int) $solde['solde_disponible']);
 }
 
 /* Enregistrer l'année de mise à jour */
 
-$stmt = $pdo->prepare("
-UPDATE parametres
-SET derniere_maj_solde = ?
-");
+$stmt = $pdo->prepare("INSERT INTO parametres (id, derniere_maj_solde)
+                       VALUES (1, ?)
+                       ON DUPLICATE KEY UPDATE derniere_maj_solde = VALUES(derniere_maj_solde)");
 
 $stmt->execute([$anneeActuelle]);
 

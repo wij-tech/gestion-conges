@@ -2,15 +2,19 @@
 
 require_once "../config/auth.php";
 require_once "../config/database.php";
+require_once "../config/solde_annuel.php";
 
 // Récupérer l'employé connecté
-$sql = "SELECT * FROM employes
-        WHERE utilisateur_id = ?";
+$sql = "SELECT employes.*
+    FROM employes
+    INNER JOIN utilisateurs ON utilisateurs.id = employes.utilisateur_id
+    WHERE employes.utilisateur_id = ? AND utilisateurs.statut = 'actif'";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$_SESSION['id']]);
 
 $employe = $stmt->fetch();
+$soldeAnnuel = obtenir_solde_annuel($pdo, (int) $employe['id'], (int) date('Y'));
 
 $messageSucces = '';
 $messageErreur = '';
@@ -35,10 +39,10 @@ if (isset($_POST['envoyer'])) {
     } else {
         $nombre_jours = (new DateTime($date_debut))->diff(new DateTime($date_fin))->days + 1;
 
-        if ($type_conge === 'Congé annuel' && $nombre_jours > (int) $employe['solde_total']) {
+        if ($type_conge === 'Congé annuel' && $nombre_jours > (int) $soldeAnnuel['solde_disponible']) {
             $messageErreur = 'Votre solde de congés annuels est insuffisant.';
         } elseif ($type_conge === 'Congé exceptionnel'
-            && ((int) $employe['solde_total'] > 0 || $nombre_jours > 10)) {
+            && ((int) $soldeAnnuel['solde_disponible'] > 0 || $nombre_jours > 10)) {
             $messageErreur = 'Le congé exceptionnel est disponible uniquement lorsque le solde annuel est épuisé, pour 10 jours maximum.';
         } elseif ($type_conge === 'Congé maladie') {
             $fichier = $_FILES['certificat_medical'] ?? null;
@@ -67,10 +71,11 @@ if (isset($_POST['envoyer'])) {
 
         if ($messageErreur === '') {
             try {
+                $statutInitial = $_SESSION['role'] === 'chef_division' ? 'en_attente_admin' : 'en_attente_chef';
                 $sql = "INSERT INTO conges (employe_id, chef_division_id, type_conge, date_debut, date_fin, nombre_jours, motif, certificat_medical, statut)
-                        VALUES (?, NULL, ?, ?, ?, ?, ?, ?, 'En attente')";
+                    VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?)";
                 $stmt = $pdo->prepare($sql);
-                $stmt->execute([$employe['id'], $type_conge, $date_debut, $date_fin, $nombre_jours, $motif, $certificatMedical]);
+                $stmt->execute([$employe['id'], $type_conge, $date_debut, $date_fin, $nombre_jours, $motif, $certificatMedical, $statutInitial]);
                 $messageSucces = 'Votre demande de congé a été envoyée avec succès.';
             } catch (Throwable $exception) {
                 if ($fichierCree && is_file($fichierCree)) {
@@ -103,7 +108,7 @@ if (isset($_POST['envoyer'])) {
 
 <p>
     Votre solde actuel :
-    <strong><?= $employe['solde_total']; ?> jours</strong>
+    <strong><?= $soldeAnnuel['solde_disponible']; ?> jours</strong>
 </p>
 
 <form method="POST" enctype="multipart/form-data">
@@ -125,13 +130,13 @@ Type de congé
         Congé maladie
     </option>
 
-    <option value="Congé exceptionnel" <?= (int) $employe['solde_total'] > 0 ? 'disabled' : ''; ?>>
+    <option value="Congé exceptionnel" <?= (int) $soldeAnnuel['solde_disponible'] > 0 ? 'disabled' : ''; ?>>
         Congé exceptionnel
     </option>
 
 </select>
 
-<?php if ((int) $employe['solde_total'] > 0) { ?>
+<?php if ((int) $soldeAnnuel['solde_disponible'] > 0) { ?>
     <small class="form-hint">Le congé exceptionnel sera disponible lorsque votre solde annuel sera épuisé.</small>
 <?php } ?>
 

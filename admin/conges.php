@@ -2,6 +2,7 @@
 
 require_once "../config/auth.php";
 require_once "../config/database.php";
+require_once "../config/statut_conge.php";
 
 // =======================
 // Filtres
@@ -85,12 +86,11 @@ $conges = $stmt->fetchAll();
 
         <?php foreach($divisions as $d){ ?>
 
-            <option value="<?= $d['id']; ?>"
-                <?= ($division == $d['id']) ? "selected" : ""; ?>>
+        <option value="<?= $d['id']; ?>" <?= ($division == $d['id']) ? "selected" : ""; ?>>
 
-                <?= e($d['nom_division']); ?>
+            <?= e($d['nom_division']); ?>
 
-            </option>
+        </option>
 
         <?php } ?>
 
@@ -100,18 +100,19 @@ $conges = $stmt->fetchAll();
 
         <option value="">Tous les statuts</option>
 
-        <option value="En attente"
-            <?= ($statut=="En attente")?"selected":""; ?>>
-            En attente
+        <option value="en_attente_chef" <?= ($statut=="en_attente_chef")?"selected":""; ?>>
+            En attente chef
         </option>
 
-        <option value="Valide"
-            <?= ($statut=="Valide")?"selected":""; ?>>
+        <option value="en_attente_admin" <?= ($statut=="en_attente_admin")?"selected":""; ?>>
+            En attente admin
+        </option>
+
+        <option value="validee" <?= ($statut=="validee")?"selected":""; ?>>
             Validé
         </option>
 
-        <option value="Refuse"
-            <?= ($statut=="Refuse")?"selected":""; ?>>
+        <option value="refusee" <?= ($statut=="refusee")?"selected":""; ?>>
             Refusé
         </option>
 
@@ -121,18 +122,15 @@ $conges = $stmt->fetchAll();
 
         <option value="">Tous les types</option>
 
-        <option value="Congé annuel"
-            <?= ($type=="Congé annuel")?"selected":""; ?>>
+        <option value="Congé annuel" <?= ($type=="Congé annuel")?"selected":""; ?>>
             Congé annuel
         </option>
 
-        <option value="Congé maladie"
-            <?= ($type=="Congé maladie")?"selected":""; ?>>
+        <option value="Congé maladie" <?= ($type=="Congé maladie")?"selected":""; ?>>
             Congé maladie
         </option>
 
-        <option value="Congé exceptionnel"
-            <?= ($type=="Congé exceptionnel")?"selected":""; ?>>
+        <option value="Congé exceptionnel" <?= ($type=="Congé exceptionnel")?"selected":""; ?>>
             Congé exceptionnel
         </option>
 
@@ -141,14 +139,14 @@ $conges = $stmt->fetchAll();
     <div class="filter-date <?= $date_debut !== '' ? 'has-value' : ''; ?>">
         <i class="fa-solid fa-calendar"></i>
         <input type="date" name="date_debut" value="<?= e($date_debut); ?>" aria-label="Date de début"
-               oninput="this.parentElement.classList.toggle('has-value', this.value !== '')">
+            oninput="this.parentElement.classList.toggle('has-value', this.value !== '')">
         <span>Date de début</span>
     </div>
 
     <div class="filter-date <?= $date_fin !== '' ? 'has-value' : ''; ?>">
         <i class="fa-solid fa-calendar-check"></i>
         <input type="date" name="date_fin" value="<?= e($date_fin); ?>" aria-label="Date de fin"
-               oninput="this.parentElement.classList.toggle('has-value', this.value !== '')">
+            oninput="this.parentElement.classList.toggle('has-value', this.value !== '')">
         <span>Date de fin</span>
     </div>
 
@@ -173,23 +171,24 @@ $conges = $stmt->fetchAll();
         <span class="result-count"><?= count($conges); ?> résultat<?= count($conges) > 1 ? 's' : ''; ?></span>
     </div>
 
-<table>
+    <table>
 
-    <tr>
-        <th>Nom</th>
-        <th>Prénom</th>
-        <th>Division</th>
-        <th>Type de congé</th>
-        <th>Date début</th>
-        <th>Date fin</th>
-        <th>Nombre de jours</th>
-        <th>Justificatif</th>
-        <th>Statut</th>
-        <th>Date demande</th>
-        <th>Date traitement</th>
-    </tr>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+            <th>Division</th>
+            <th>Type de congé</th>
+            <th>Date début</th>
+            <th>Date fin</th>
+            <th>Nombre de jours</th>
+            <th>Justificatif</th>
+            <th>Statut</th>
+            <th>Date demande</th>
+            <th>Date traitement</th>
+            <th>Actions</th>
+        </tr>
 
-    <?php foreach($conges as $conge){ ?>
+        <?php foreach($conges as $conge){ ?>
 
         <tr>
 
@@ -209,58 +208,52 @@ $conges = $stmt->fetchAll();
 
             <td>
                 <?php if (!empty($conge['certificat_medical'])) { ?>
-                    <a class="document-link" target="_blank" rel="noopener"
-                       href="../uploads/certificats/<?= rawurlencode(basename($conge['certificat_medical'])); ?>">
-                        <i class="fa-solid fa-file-pdf"></i> PDF
-                    </a>
+                <a class="document-link" target="_blank" rel="noopener"
+                    href="../uploads/certificats/<?= rawurlencode(basename($conge['certificat_medical'])); ?>">
+                    <i class="fa-solid fa-file-pdf"></i> PDF
+                </a>
                 <?php } else { ?>
-                    <span class="document-empty">—</span>
+                <span class="document-empty">—</span>
                 <?php } ?>
             </td>
 
             <td>
 
-<?php
+                                <?= statut_conge_badge($conge['statut']); ?>
 
-if($conge['statut'] == "Valide")
-{
-    echo '<span class="badge badge-valide">
-            <i class="fa-solid fa-circle-check"></i>
-            Validé
-          </span>';
-}
-elseif($conge['statut'] == "Refuse")
-{
-    echo '<span class="badge badge-refuse">
-            <i class="fa-solid fa-circle-xmark"></i>
-            Refusé
-          </span>';
-}
-else
-{
-    echo '<span class="badge badge-attente">
-            <i class="fa-solid fa-clock"></i>
-            En attente
-          </span>';
-}
-
-?>
-
-</td>
+            </td>
 
             <td><?= e($conge['date_demande']); ?></td>
 
             <td><?= e($conge['date_traitement']); ?></td>
 
+            <td class="actions">
+                <?php if ($conge['statut'] === 'en_attente_admin') { ?>
+                <form method="POST" action="valider_conge.php" class="delete-form">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()); ?>">
+                    <input type="hidden" name="id" value="<?= (int) $conge['id']; ?>">
+                    <button type="submit" class="btn-modifier btn-sm">Valider</button>
+                </form>
+                <form method="POST" action="refuser_conge.php" class="delete-form">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()); ?>">
+                    <input type="hidden" name="id" value="<?= (int) $conge['id']; ?>">
+                    <button type="submit" class="btn-supprimer btn-sm">Refuser</button>
+                </form>
+                <?php } else { ?>
+                Traitée
+                <?php } ?>
+            </td>
+
         </tr>
 
-    <?php } ?>
+        <?php } ?>
 
-    <?php if (!$conges) { ?>
+        <?php if (!$conges) { ?>
         <tr class="empty-row">
-            <td colspan="11"><i class="fa-solid fa-inbox"></i> Aucune demande de congé ne correspond aux filtres sélectionnés.</td>
+            <td colspan="12"><i class="fa-solid fa-inbox"></i> Aucune demande de congé ne correspond aux filtres
+                sélectionnés.</td>
         </tr>
-    <?php } ?>
+        <?php } ?>
 
-</table>
+    </table>
 </div>

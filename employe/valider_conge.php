@@ -2,6 +2,7 @@
 
 require_once "../config/auth.php";
 require_once "../config/database.php";
+require_once "../config/solde_annuel.php";
 
 if ($_SESSION['role'] != "chef_division") {
     die("Accès refusé.");
@@ -23,13 +24,23 @@ $chef = $stmt->fetch();
 
 // Informations du congé
 
-$sql = "SELECT * FROM conges
-        WHERE id = ?";
+$sql = "SELECT conges.*
+        FROM conges
+        INNER JOIN employes ON employes.id = conges.employe_id
+        WHERE conges.id = ?
+          AND employes.division_id = ?
+          AND employes.id <> ?
+          AND conges.statut = 'en_attente_chef'";
 
 $stmt = $pdo->prepare($sql);
-$stmt->execute([$id_conge]);
+$stmt->execute([$id_conge, $chef['division_id'], $chef['id']]);
 
 $conge = $stmt->fetch();
+
+if (!$conge) {
+        header("Location: dashboard.php?page=demandes_division");
+        exit();
+}
 
 
 // Mise à jour du congé
@@ -38,7 +49,7 @@ $sql = "UPDATE conges
 
         SET
 
-        statut = 'Valide',
+        statut = 'en_attente_admin',
         chef_division_id = ?,
         date_traitement = NOW()
 
@@ -51,29 +62,6 @@ $stmt->execute([
     $id_conge
 
 ]);
-
-
-// Si congé annuel, mise à jour du solde
-
-if($conge['type_conge'] == "Congé annuel")
-{
-
-    $sql = "UPDATE employes
-
-            SET solde_total = solde_total - ?
-
-            WHERE id = ?";
-
-    $stmt = $pdo->prepare($sql);
-
-    $stmt->execute([
-
-        $conge['nombre_jours'],
-        $conge['employe_id']
-
-    ]);
-
-}
 
 
 // Notification
@@ -105,8 +93,8 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute([
 
     $employe['utilisateur_id'],
-    "Congé validé",
-    "Votre demande de congé a été validée.",
+        "Demande transmise",
+        "Votre demande de congé a été transmise à l'administrateur pour validation finale.",
     "Congé"
 
 ]);

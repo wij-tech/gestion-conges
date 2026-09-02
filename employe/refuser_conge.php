@@ -23,13 +23,23 @@ $chef = $stmt->fetch();
 
 // Informations du congé
 
-$sql = "SELECT * FROM conges
-        WHERE id = ?";
+$sql = "SELECT conges.*
+        FROM conges
+        INNER JOIN employes ON employes.id = conges.employe_id
+        WHERE conges.id = ?
+          AND employes.division_id = ?
+          AND employes.id <> ?
+          AND conges.statut = 'en_attente_chef'";
 
 $stmt = $pdo->prepare($sql);
-$stmt->execute([$id_conge]);
+$stmt->execute([$id_conge, $chef['division_id'], $chef['id']]);
 
 $conge = $stmt->fetch();
+
+if (!$conge) {
+        header("Location: dashboard.php?page=demandes_division");
+        exit();
+}
 
 
 // Mise à jour du statut
@@ -38,7 +48,7 @@ $sql = "UPDATE conges
 
         SET
 
-        statut = 'Refuse',
+        statut = 'refusee',
         chef_division_id = ?,
         date_traitement = NOW()
 
