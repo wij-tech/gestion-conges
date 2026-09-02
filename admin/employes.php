@@ -18,6 +18,7 @@ $recherche = trim($_GET['recherche'] ?? '');
 $divisionId = filter_input(INPUT_GET, 'division_id', FILTER_VALIDATE_INT) ?: '';
 $role = $_GET['role'] ?? '';
 $dateEmbauche = $_GET['date_embauche'] ?? '';
+$statut = $_GET['statut'] ?? 'actif';
 $rolesAutorises = ['employe', 'chef_division'];
 $roleLabels = [
     'employe' => 'Employé',
@@ -29,6 +30,9 @@ if (!in_array($role, $rolesAutorises, true)) {
 }
 if ($dateEmbauche !== '' && !preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $dateEmbauche)) {
     $dateEmbauche = '';
+}
+if (!in_array($statut, ['actif', 'inactif', 'tous'], true)) {
+    $statut = 'actif';
 }
 
 $conditions = [];
@@ -50,11 +54,19 @@ if ($dateEmbauche !== '') {
     $conditions[] = 'employes.date_embauche = ?';
     $params[] = $dateEmbauche;
 }
+if ($statut !== 'tous') {
+    $conditions[] = 'utilisateurs.statut = ?';
+    $params[] = $statut;
+}
 
-$sql = "SELECT employes.*, divisions.nom_division, utilisateurs.role
+$sql = "SELECT employes.*, divisions.nom_division, utilisateurs.role, utilisateurs.statut,
+           COALESCE(soldes_annuels.solde_disponible, employes.solde_total) AS solde_actuel
         FROM employes
         INNER JOIN divisions ON employes.division_id = divisions.id
-        INNER JOIN utilisateurs ON employes.utilisateur_id = utilisateurs.id";
+    INNER JOIN utilisateurs ON employes.utilisateur_id = utilisateurs.id
+    LEFT JOIN soldes_annuels
+        ON soldes_annuels.employe_id = employes.id
+       AND soldes_annuels.annee = YEAR(CURDATE())";
 if ($conditions) {
     $sql .= ' WHERE ' . implode(' AND ', $conditions);
 }
@@ -77,10 +89,18 @@ $messagesErreur = [
     'invalide' => 'Employé invalide.',
     'suppression' => 'La suppression a échoué. Aucune donnée n’a été supprimée.',
 ];
+$messagesStatut = [
+    'desactive' => 'Employé désactivé. Son historique a été conservé.',
+    'reactive' => 'Employé réactivé avec succès.',
+];
 $erreur = $messagesErreur[$_GET['error'] ?? ''] ?? '';
+$messageStatut = $messagesStatut[$_GET['status'] ?? ''] ?? '';
 ?>
 <?php if ($erreur !== '') { ?>
 <p class="error"><?= e($erreur); ?></p>
+<?php } ?>
+<?php if ($messageStatut !== '') { ?>
+<p class="success"><?= e($messageStatut); ?></p>
 <?php } ?>
 
 
@@ -116,11 +136,16 @@ $erreur = $messagesErreur[$_GET['error'] ?? ''] ?? '';
         <option value="chef_division" <?= $role === 'chef_division' ? 'selected' : ''; ?>>Chef de division</option>
     </select>
 
+    <select name="statut">
+        <option value="actif" <?= $statut === 'actif' ? 'selected' : ''; ?>>Employés actifs</option>
+        <option value="inactif" <?= $statut === 'inactif' ? 'selected' : ''; ?>>Employés inactifs</option>
+        <option value="tous" <?= $statut === 'tous' ? 'selected' : ''; ?>>Tous les statuts</option>
+    </select>
+
     <div class="filter-date <?= $dateEmbauche !== '' ? 'has-value' : ''; ?>">
         <i class="fa-solid fa-calendar"></i>
         <input id="date_embauche" type="date" name="date_embauche" value="<?= e($dateEmbauche); ?>"
-               aria-label="Date d’embauche"
-               oninput="this.parentElement.classList.toggle('has-value', this.value !== '')">
+            aria-label="Date d’embauche" oninput="this.parentElement.classList.toggle('has-value', this.value !== '')">
         <span>Date d’embauche</span>
     </div>
 
@@ -151,6 +176,7 @@ $erreur = $messagesErreur[$_GET['error'] ?? ''] ?? '';
         <th>Division</th>
         <th>Rôle</th>
         <th>Solde</th>
+        <th>Statut</th>
         <th>Actions</th>
 
     </tr>
@@ -177,7 +203,9 @@ $erreur = $messagesErreur[$_GET['error'] ?? ''] ?? '';
 
         <td><?= e($roleLabels[$employe['role']] ?? $employe['role']); ?></td>
 
-        <td><?= $employe['solde_total']; ?> jours</td>
+        <td><?= $employe['solde_actuel']; ?> jours</td>
+
+        <td><?= e(ucfirst($employe['statut'])); ?></td>
 
         <td class="actions">
 
@@ -188,14 +216,24 @@ $erreur = $messagesErreur[$_GET['error'] ?? ''] ?? '';
 
             </a>
 
+            <?php if ($employe['statut'] === 'actif') { ?>
             <form method="POST" action="supprimer_employe.php" class="delete-form"
-                onsubmit="return confirm('Voulez-vous vraiment supprimer cet employé ?')">
+                onsubmit="return confirm('Voulez-vous désactiver cet employé ?')">
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()); ?>">
                 <input type="hidden" name="id" value="<?= $employe['id']; ?>">
                 <button type="submit" class="btn-icon btn-supprimer" title="Supprimer" aria-label="Supprimer">
-                    <i class="fa-solid fa-trash"></i>
+                    <i class="fa-solid fa-user-slash"></i>
                 </button>
             </form>
+            <?php } else { ?>
+            <form method="POST" action="reactiver_employe.php" class="delete-form">
+                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()); ?>">
+                <input type="hidden" name="id" value="<?= $employe['id']; ?>">
+                <button type="submit" class="btn-icon btn-modifier" title="Réactiver" aria-label="Réactiver">
+                    <i class="fa-solid fa-user-check"></i>
+                </button>
+            </form>
+            <?php } ?>
 
         </td>
 
@@ -204,9 +242,9 @@ $erreur = $messagesErreur[$_GET['error'] ?? ''] ?? '';
     <?php } ?>
 
     <?php if (!$employes) { ?>
-        <tr class="empty-row">
-            <td colspan="10"><i class="fa-solid fa-users-slash"></i> Aucun employé ne correspond à votre recherche.</td>
-        </tr>
+    <tr class="empty-row">
+        <td colspan="11"><i class="fa-solid fa-users-slash"></i> Aucun employé ne correspond à votre recherche.</td>
+    </tr>
     <?php } ?>
 
 </table>

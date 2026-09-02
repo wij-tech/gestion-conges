@@ -2,6 +2,9 @@
 
 require_once "../config/auth.php";
 require_once "../config/database.php";
+require_once "../config/solde_annuel.php";
+require_once "../config/statut_conge.php";
+require_once "../config/graphique_conges.php";
 
 $page = $_GET['page'] ?? 'home';
 $roleLabel = ($_SESSION['role'] ?? '') === 'chef_division' ? 'Chef de division' : 'Employé';
@@ -26,12 +29,14 @@ if (!$employe) {
     exit('Profil employé introuvable.');
 }
 
+$soldeAnnuel = obtenir_solde_annuel($pdo, (int) $employe['id'], (int) date('Y'));
+
 
 // Congés validés
 $sql = "SELECT COUNT(*) AS total
         FROM conges
         WHERE employe_id = ?
-        AND statut = 'Valide'";
+        AND statut = 'validee'";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$employe['id']]);
@@ -43,7 +48,7 @@ $totalValide = $stmt->fetch()['total'];
 $sql = "SELECT COUNT(*) AS total
         FROM conges
         WHERE employe_id = ?
-        AND statut = 'En attente'";
+        AND statut IN ('en_attente_chef', 'en_attente_admin')";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$employe['id']]);
@@ -81,7 +86,7 @@ if($_SESSION['role'] == "chef_division")
         INNER JOIN employes
         ON conges.employe_id = employes.id
         WHERE employes.division_id = ?
-        AND conges.statut='En attente'
+        AND conges.statut='en_attente_chef'
     ");
     $stmt->execute([$employe['division_id']]);
     $totalAttenteDivision = $stmt->fetch()['total'];
@@ -93,7 +98,7 @@ if($_SESSION['role'] == "chef_division")
         INNER JOIN employes
         ON conges.employe_id = employes.id
         WHERE employes.division_id = ?
-        AND conges.statut='Valide'
+        AND conges.statut='validee'
     ");
     $stmt->execute([$employe['division_id']]);
     $totalValideDivision = $stmt->fetch()['total'];
@@ -105,7 +110,7 @@ if($_SESSION['role'] == "chef_division")
         INNER JOIN employes
         ON conges.employe_id = employes.id
         WHERE employes.division_id = ?
-        AND conges.statut='Refuse'
+        AND conges.statut='refusee'
     ");
     $stmt->execute([$employe['division_id']]);
     $totalRefuseDivision = $stmt->fetch()['total'];
@@ -119,8 +124,11 @@ $sql = "SELECT
             prenom,
             email,
             telephone,
-            solde_total
+            COALESCE(soldes_annuels.solde_disponible, employes.solde_total) AS solde_actuel
         FROM employes
+        LEFT JOIN soldes_annuels
+            ON soldes_annuels.employe_id = employes.id
+           AND soldes_annuels.annee = YEAR(CURDATE())
         WHERE division_id = ?
         ORDER BY nom, prenom";
 
@@ -129,45 +137,7 @@ $stmt->execute([$employe['division_id']]);
 
 $employesDivision = $stmt->fetchAll();
 
-$anneeCourante = (int) date('Y');
-$stmt = $pdo->prepare("SELECT MONTH(conges.date_debut) AS periode, COUNT(*) AS total
-                       FROM conges
-                       INNER JOIN employes ON employes.id = conges.employe_id
-                       WHERE employes.division_id = ? AND YEAR(conges.date_debut) = ?
-                       GROUP BY MONTH(conges.date_debut)
-                       ORDER BY periode");
-$stmt->execute([$employe['division_id'], $anneeCourante]);
-$evolutionMoisDivision = array_fill(1, 12, 0);
-foreach ($stmt->fetchAll() as $ligne) {
-    $evolutionMoisDivision[(int) $ligne['periode']] = (int) $ligne['total'];
-}
-
-$stmt = $pdo->prepare("SELECT WEEK(conges.date_debut, 1) AS periode, COUNT(*) AS total
-                       FROM conges
-                       INNER JOIN employes ON employes.id = conges.employe_id
-                       WHERE employes.division_id = ? AND YEAR(conges.date_debut) = ?
-                       GROUP BY WEEK(conges.date_debut, 1)
-                       ORDER BY periode");
-$stmt->execute([$employe['division_id'], $anneeCourante]);
-$evolutionSemaineDivision = array_fill(1, 53, 0);
-foreach ($stmt->fetchAll() as $ligne) {
-    $semaine = (int) $ligne['periode'];
-    if ($semaine >= 1 && $semaine <= 53) {
-        $evolutionSemaineDivision[$semaine] = (int) $ligne['total'];
-    }
-}
-
-$stmt = $pdo->prepare("SELECT YEAR(conges.date_debut) AS periode, COUNT(*) AS total
-                       FROM conges
-                       INNER JOIN employes ON employes.id = conges.employe_id
-                       WHERE employes.division_id = ?
-                       GROUP BY YEAR(conges.date_debut)
-                       ORDER BY periode");
-$stmt->execute([$employe['division_id']]);
-$evolutionAnneeDivision = [];
-foreach ($stmt->fetchAll() as $ligne) {
-    $evolutionAnneeDivision[(string) $ligne['periode']] = (int) $ligne['total'];
-}
+$evolutionCongesDivision = compter_employes_en_conge($pdo, (int) $employe['division_id']);
 
 ?>
 
@@ -251,13 +221,13 @@ foreach ($stmt->fetchAll() as $ligne) {
             </ul>
 
             <div class="sidebar-footer">
-                <div class="sidebar-profile">
+                <a class="sidebar-profile" href="../profil.php">
                     <div class="sidebar-avatar"><i class="fa-solid fa-user"></i></div>
                     <div>
                         <strong><?= e($_SESSION['username'] ?? 'Utilisateur'); ?></strong>
                         <span><?= e($roleLabel); ?></span>
                     </div>
-                </div>
+                </a>
 
                 <a class="sidebar-logout" href="../logout.php">
                     <i class="fa-solid fa-right-from-bracket"></i>
@@ -287,7 +257,7 @@ foreach ($stmt->fetchAll() as $ligne) {
 
                     <h3>Solde restant</h3>
 
-                    <p><?= $employe['solde_total']; ?> jours</p>
+                    <p><?= $soldeAnnuel['solde_disponible']; ?> jours</p>
 
                 </div>
 
@@ -381,8 +351,8 @@ foreach ($stmt->fetchAll() as $ligne) {
                 <section class="period-chart-container">
                     <div class="period-chart-header">
                         <div>
-                            <h2>Évolution des congés</h2>
-                            <p>Suivez l'évolution des demandes de votre division.</p>
+                            <h2>Employés en congé par période</h2>
+                            <p>Nombre d'employés distincts ayant un congé validé pendant la période.</p>
                         </div>
                         <label class="period-selector">
                             <span>Période</span>
@@ -401,9 +371,9 @@ foreach ($stmt->fetchAll() as $ligne) {
                 <script>
                 (() => {
                     const chartData = <?= json_encode([
-                        'semaine' => ['labels' => array_map(fn($value) => 'S' . $value, array_keys($evolutionSemaineDivision)), 'values' => array_values($evolutionSemaineDivision)],
-                        'mois' => ['labels' => ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'], 'values' => array_values($evolutionMoisDivision)],
-                        'annee' => ['labels' => array_keys($evolutionAnneeDivision), 'values' => array_values($evolutionAnneeDivision)]
+                        'semaine' => $evolutionCongesDivision['semaine'],
+                        'mois' => $evolutionCongesDivision['mois'],
+                        'annee' => $evolutionCongesDivision['annee']
                     ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
                     const select = document.getElementById('divisionPeriodSelect');
                     const context = document.getElementById('divisionPeriodChart');
@@ -412,7 +382,7 @@ foreach ($stmt->fetchAll() as $ligne) {
                         data: {
                             labels: chartData.mois.labels,
                             datasets: [{
-                                label: 'Nombre de congés',
+                                label: "Nombre d'employés en congé",
                                 data: chartData.mois.values,
                                 borderColor: '#2563eb',
                                 backgroundColor: 'rgba(37, 99, 235, 0.12)',
@@ -488,7 +458,7 @@ foreach ($stmt->fetchAll() as $ligne) {
 
                             <td><?= e($e['telephone']); ?></td>
 
-                            <td><?= $e['solde_total']; ?> jours</td>
+                            <td><?= $e['solde_actuel']; ?> jours</td>
 
                         </tr>
 

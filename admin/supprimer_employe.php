@@ -48,8 +48,10 @@ try {
     $stmtConges = $pdo->prepare('SELECT COUNT(*) FROM conges WHERE employe_id = ?');
     $stmtConges->execute([$id]);
     if ((int) $stmtConges->fetchColumn() > 0) {
-        $pdo->rollBack();
-        header('Location: dashboard.php?page=employes&error=conges');
+        $stmtDesactiver = $pdo->prepare("UPDATE utilisateurs SET statut = 'inactif' WHERE id = ?");
+        $stmtDesactiver->execute([$utilisateur_id]);
+        $pdo->commit();
+        header('Location: dashboard.php?page=employes&status=desactive');
         exit();
     }
 

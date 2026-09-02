@@ -2,6 +2,8 @@
 
 require_once "../config/auth.php";
 require_once "../config/database.php";
+require_once "../config/statut_conge.php";
+require_once "../config/solde_annuel.php";
 
 // Récupérer l'employé connecté
 $sql = "SELECT *
@@ -12,12 +14,13 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute([$_SESSION['id']]);
 
 $employe = $stmt->fetch();
+$soldeAnnuel = obtenir_solde_annuel($pdo, (int) $employe['id'], (int) date('Y'));
 
 $recherche = trim((string) ($_GET['recherche'] ?? ''));
 $statut = $_GET['statut'] ?? '';
 $periodeDebut = $_GET['periode_debut'] ?? '';
 $periodeFin = $_GET['periode_fin'] ?? '';
-$statutsAutorises = ['En attente', 'Valide', 'Refuse', 'Annule'];
+$statutsAutorises = ['en_attente_chef', 'en_attente_admin', 'validee', 'refusee', 'Annule'];
 
 if (!in_array($statut, $statutsAutorises, true)) {
     $statut = '';
@@ -67,7 +70,7 @@ $conges = $stmt->fetchAll();
 
 <p>
     Votre solde actuel :
-    <strong><?= $employe['solde_total']; ?> jours</strong>
+    <strong><?= $soldeAnnuel['solde_disponible']; ?> jours</strong>
 </p>
 
 <br>
@@ -148,35 +151,7 @@ $conges = $stmt->fetchAll();
                 <?php } ?>
             </td>
 
-            <td>
-
-<?php
-
-if($conge['statut'] == "Valide")
-{
-    echo '<span class="badge badge-valide">
-            <i class="fa-solid fa-circle-check"></i>
-            Validé
-          </span>';
-}
-elseif($conge['statut'] == "Refuse")
-{
-    echo '<span class="badge badge-refuse">
-            <i class="fa-solid fa-circle-xmark"></i>
-            Refusé
-          </span>';
-}
-else
-{
-    echo '<span class="badge badge-attente">
-            <i class="fa-solid fa-clock"></i>
-            En attente
-          </span>';
-}
-
-?>
-
-</td>
+                        <td><?= statut_conge_badge($conge['statut']); ?></td>
 
             <td><?= e($conge['date_demande']); ?></td>
 

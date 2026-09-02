@@ -14,8 +14,8 @@ if(isset($_POST['login']))
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'];
 
-    $sql = "SELECT * FROM utilisateurs
-            WHERE username = ?";
+        $sql = "SELECT * FROM utilisateurs
+            WHERE username = ? AND statut = 'actif'";
 
     $stmt = $pdo->prepare($sql);
 
@@ -33,6 +33,7 @@ if(isset($_POST['login']))
             $_SESSION['id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
+            $_SESSION['statut'] = $user['statut'];
 
 
             if($user['role'] == 'admin')
